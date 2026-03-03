@@ -5,6 +5,7 @@ import {
 import { isStructuredPhaseOutput } from '@/lib/pdi/structured-output'
 import { PDI_SECTION_ORDER, type PdiSectionKey } from '@/lib/pdi/orchestrator'
 import { MarkdownContent } from './MarkdownContent'
+import { PhaseAdvanceButton } from './PhaseAdvanceButton'
 import { PdiShell } from './PdiShell'
 import { PhaseChatRail } from './PhaseChatRail'
 import { RevisionChatRail } from './RevisionChatRail'
@@ -253,6 +254,13 @@ function workspaceForScreen(
               <div className="card-body">
                 <MarkdownContent content={phase1StructuredOutput} />
               </div>
+              <div className="card-footer">
+                <PhaseAdvanceButton
+                  pdiId={pdiId}
+                  phase="PHASE_1_DIAGNOSTICO"
+                  label="Avançar para o Diagnóstico Adaptativo →"
+                />
+              </div>
             </article>
           ) : null}
           <article className="card">
@@ -284,6 +292,13 @@ function workspaceForScreen(
               </div>
               <div className="card-body">
                 <MarkdownContent content={phase2StructuredOutput} />
+              </div>
+              <div className="card-footer">
+                <PhaseAdvanceButton
+                  pdiId={pdiId}
+                  phase="PHASE_2_ADAPTATIVO"
+                  label="Avançar para a Hipótese de Direção →"
+                />
               </div>
             </article>
           ) : (
@@ -317,6 +332,13 @@ function workspaceForScreen(
               </div>
               <div className="card-body">
                 <MarkdownContent content={phase3StructuredOutput} />
+              </div>
+              <div className="card-footer">
+                <PhaseAdvanceButton
+                  pdiId={pdiId}
+                  phase="PHASE_3_DIRECAO"
+                  label="Confirmar direção e gerar PDI completo →"
+                />
               </div>
             </article>
           ) : (
