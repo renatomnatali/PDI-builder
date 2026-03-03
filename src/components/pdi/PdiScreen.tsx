@@ -452,7 +452,7 @@ function chatForScreen(
             phaseLabel: 'Fase 2/5',
             progress: 38,
             progressText: 'Diagnóstico adaptativo com triangulação de mercado',
-            placeholder: 'Detalhe seu ramo principal e evidências...',
+            placeholder: 'Responda ao mentor...',
             ctaPrimary: 'Enviar diagnóstico',
             ctaSecondary: 'Pedir resumo',
             promoteStructuredAssistantOutputToWorkspace: true,

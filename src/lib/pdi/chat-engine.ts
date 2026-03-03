@@ -78,6 +78,24 @@ function normalizePhase2SingleQuestion(content: string): string {
   return `${intro}\n\n${firstQuestion}`
 }
 
+export async function buildPhase3InitialMessage(phase2History: Message[]): Promise<string> {
+  try {
+    const aiMessages = toAIMessage(phase2History)
+    aiMessages.push({ role: 'user', content: 'Pode avançar para a proposta de direção.' })
+
+    const response = await chatWithAI({
+      phase: 'pdi_chat',
+      systemPrompt: buildPdiChatSystemPrompt('PHASE_3_DIRECAO'),
+      messages: aiMessages,
+    })
+
+    const text = response.text.trim()
+    return text || FALLBACK_BY_PHASE['PHASE_3_DIRECAO']
+  } catch {
+    return FALLBACK_BY_PHASE['PHASE_3_DIRECAO']
+  }
+}
+
 export async function buildAssistantReply(
   phase: ConversationPhase,
   userMessage: string,
