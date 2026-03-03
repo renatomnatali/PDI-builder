@@ -24,7 +24,7 @@ const PHASE_2_SCREEN = 'phase-2-adaptativo'
 const PHASE_3_SCREEN = 'phase-3-direcao'
 const PHASE_4_SCREEN = 'phase-4-pdi/inicio'
 const ASK_TO_ADVANCE_PHASE_2_PATTERN = /posso\s+avan[çc]ar\s+para\s+a\s+fase\s*2/i
-const ASK_TO_ADVANCE_PHASE_3_PATTERN = /posso\s+avan[çc]ar\s+para\s+a\s+proposta\s+de\s+dire[çc][ãa]o/i
+const PHASE_2_CLOSING_PATTERN = /✅\s*confirmado/i
 const ASK_ABOUT_PATH_PATTERN = /qual\s+(desses?\s+)?caminhos?|prefere\s+seguir|quer\s+seguir|por\s+qual\s+caminho|confirmar\s+o\s+caminho/i
 const NEGATIVE_INTENT_PATTERN = /\b(n[aã]o|ainda n[aã]o|espera|aguarde)\b/i
 const AFFIRMATIVE_INTENT_PATTERN =
@@ -57,7 +57,7 @@ function shouldAdvanceToPhase3(
   if (!isAffirmativeForPhaseAdvance(userMessage)) return false
 
   const latestAssistant = findLatestAssistantBeforeCurrentUser(history)
-  return ASK_TO_ADVANCE_PHASE_3_PATTERN.test(latestAssistant)
+  return PHASE_2_CLOSING_PATTERN.test(latestAssistant)
 }
 
 function shouldAdvanceToPhase4(

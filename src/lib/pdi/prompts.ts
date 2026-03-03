@@ -24,8 +24,8 @@ Enquanto houver perguntas a fazer: envie APENAS a pergunta, sem bloco de fechame
 
 Quando tiver coletado informação suficiente para avançar, envie SOMENTE o bloco de fechamento (sem nova pergunta):
 "✅ Confirmado: [itens confirmados]
-⚠️ Falta: [itens não coletados, se houver]
-Posso avançar para a proposta de direção?"`,
+⚠️ Falta: [itens não coletados, se houver, caso contrário omita esta linha]
+Diagnóstico adaptativo concluído."`,
   PHASE_3_DIRECAO: `Fase 3 — Hipótese de Direção.
 Entregue síntese curta do diagnóstico, 1 a 3 caminhos possíveis e recomendação fundamentada.
 Finalize perguntando qual caminho seguir.`,
