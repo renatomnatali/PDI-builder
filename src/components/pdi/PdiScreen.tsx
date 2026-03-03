@@ -274,36 +274,28 @@ function workspaceForScreen(
         <header className="workspace-header">
           <div className="workspace-breadcrumb">Fase 2 · Diagnóstico Adaptativo</div>
           <h1 className="workspace-title">Classificação do ramo e perguntas dinâmicas</h1>
-          <p className="workspace-subtitle">A conversa muda conforme suas respostas e confirmações de gate.</p>
+          <p className="workspace-subtitle">O mentor analisa seu obstáculo e aprofunda com perguntas específicas do padrão identificado.</p>
         </header>
         <section className="workspace-body">
           {phase2StructuredOutput ? (
             <article className="card">
               <div className="card-header">
-                <h2 className="card-title">Resumo Executivo Atual</h2>
+                <h2 className="card-title">Diagnóstico adaptativo consolidado</h2>
               </div>
               <div className="card-body">
                 <MarkdownContent content={phase2StructuredOutput} />
               </div>
             </article>
-          ) : null}
-          <article className="card">
-            <div className="card-header"><h2 className="card-title">Ramos de diagnóstico</h2></div>
-            <div className="card-body">
-              <div className="table-wrap">
-                <table className="data-table" style={{ minWidth: 740 }}>
-                  <thead><tr><th>Ramo</th><th>Descrição</th><th>Status</th></tr></thead>
-                  <tbody>
-                    <tr><td>A</td><td>Gap de competência</td><td><span className="badge warning">Em análise</span></td></tr>
-                    <tr><td>B</td><td>Gap de visibilidade</td><td><span className="badge info">Possível</span></td></tr>
-                    <tr><td>C</td><td>Transição de mercado</td><td><span className="badge info">Possível</span></td></tr>
-                    <tr><td>D</td><td>Clareza de direção</td><td><span className="badge info">Possível</span></td></tr>
-                    <tr><td>E</td><td>Restrição operacional</td><td><span className="badge info">Possível</span></td></tr>
-                  </tbody>
-                </table>
+          ) : (
+            <article className="card">
+              <div className="card-header"><h2 className="card-title">Em andamento</h2></div>
+              <div className="card-body">
+                <div className="callout info">
+                  O mentor está identificando o padrão do seu obstáculo e conduzindo as perguntas específicas no chat. O diagnóstico consolidado aparecerá aqui ao final desta fase.
+                </div>
               </div>
-            </div>
-          </article>
+            </article>
+          )}
         </section>
       </>
     )
@@ -315,30 +307,28 @@ function workspaceForScreen(
         <header className="workspace-header">
           <div className="workspace-breadcrumb">Fase 3 · Hipótese de Direção</div>
           <h1 className="workspace-title">Síntese estratégica e escolha de caminho</h1>
-          <p className="workspace-subtitle">Entrega de síntese, caminhos possíveis e recomendação fundamentada.</p>
+          <p className="workspace-subtitle">O mentor sintetiza o diagnóstico, mapeia caminhos possíveis e apresenta uma recomendação fundamentada.</p>
         </header>
         <section className="workspace-body">
           {phase3StructuredOutput ? (
             <article className="card">
               <div className="card-header">
-                <h2 className="card-title">Direção Estratégica Atual</h2>
+                <h2 className="card-title">Direção estratégica</h2>
               </div>
               <div className="card-body">
                 <MarkdownContent content={phase3StructuredOutput} />
               </div>
             </article>
-          ) : null}
-          <article className="card">
-            <div className="card-header"><h2 className="card-title">Caminhos possíveis</h2></div>
-            <div className="card-body">
-              <div className="kv-grid">
-                <div><div className="kv-label">Caminho A</div><div className="kv-value">Aceleração interna por visibilidade de impacto.</div></div>
-                <div><div className="kv-label">Caminho B</div><div className="kv-value">Posicionamento híbrido com opcionalidade externa.</div></div>
-                <div><div className="kv-label">Caminho C</div><div className="kv-value">Transição estruturada de mercado com runway controlado.</div></div>
-                <div><div className="kv-label">Recomendação</div><div className="kv-value">B, por balancear risco e velocidade de progressão.</div></div>
+          ) : (
+            <article className="card">
+              <div className="card-header"><h2 className="card-title">Em andamento</h2></div>
+              <div className="card-body">
+                <div className="callout info">
+                  O mentor está elaborando a síntese do seu diagnóstico e os caminhos possíveis. A direção estratégica recomendada aparecerá aqui para você confirmar ou ajustar via chat.
+                </div>
               </div>
-            </div>
-          </article>
+            </article>
+          )}
         </section>
       </>
     )
