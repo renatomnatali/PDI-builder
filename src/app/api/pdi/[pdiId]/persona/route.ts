@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db/prisma'
 import { getOrCreateUserByClerkId, requireClerkUserId, UnauthorizedError } from '@/lib/auth/session'
 import { ensurePdiForUser, PdiNotFoundError } from '@/lib/pdi/access'
-import { PERSONA_REGISTRY } from '@/lib/pdi/personas'
 
 const patchPersonaSchema = z.object({
   personaId: z.enum(['mentoria-carreira', 'pdi-expresso']),
@@ -19,11 +18,6 @@ export async function PATCH(
     const user = await getOrCreateUserByClerkId(clerkId)
     const body = await request.json()
     const parsed = patchPersonaSchema.parse(body)
-
-    // Valida que a persona existe no registry
-    if (!PERSONA_REGISTRY[parsed.personaId]) {
-      return NextResponse.json({ error: 'INVALID_PERSONA' }, { status: 400 })
-    }
 
     const pdi = await ensurePdiForUser(pdiId, user.id)
 

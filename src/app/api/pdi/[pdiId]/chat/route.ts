@@ -8,7 +8,8 @@ import {
 } from '@/lib/pdi/chat-engine'
 import { getOrCreateUserByClerkId, requireClerkUserId, UnauthorizedError } from '@/lib/auth/session'
 import { ensurePdiForUser, PdiNotFoundError } from '@/lib/pdi/access'
-import { getPersonaById } from '@/lib/pdi/personas'
+import { getPersonaById, PDI_EXPRESSO_PERSONA } from '@/lib/pdi/personas'
+import { isStructuredPhaseOutput } from '@/lib/pdi/structured-output'
 
 const chatRequestSchema = z.object({
   phase: z.enum([
@@ -27,8 +28,6 @@ const PHASE_4_SCREEN = 'phase-4-pdi/inicio'
 
 // Padrão: AI pede para avançar para Fase 2 (Mentoria de Carreira)
 const ASK_TO_ADVANCE_PHASE_2_PATTERN = /posso\s+avan[çc]ar\s+para\s+a\s+fase\s*2/i
-// Padrão: AI pede para avançar para Proposta de PDI (PDI Expresso)
-const ASK_TO_ADVANCE_DIRECT_PATTERN = /posso\s+avan[çc]ar\s+para\s+a\s+proposta\s+de\s+pdi/i
 
 const PHASE_2_CLOSING_PATTERN = /✅\s*confirmado|diagn[oó]stico adaptativo conclu[íi]do/i
 const ASK_ABOUT_PATH_PATTERN =
@@ -68,6 +67,8 @@ function shouldAdvanceToPhase2(
 }
 
 // PDI Expresso: Fase 1 → Fase 3 diretamente (pula Fase 2)
+// Usa isStructuredPhaseOutput (igual ao Mentoria de Carreira) para não depender de
+// frase exata — qualquer bloco de fechamento do PDI Expresso dispara a transição.
 function shouldAdvanceDirectlyToPhase3(
   phase: z.infer<typeof chatRequestSchema>['phase'],
   userMessage: string,
@@ -76,7 +77,7 @@ function shouldAdvanceDirectlyToPhase3(
   if (phase !== 'PHASE_1_DIAGNOSTICO') return false
   if (!isAffirmativeForPhaseAdvance(userMessage)) return false
   const latestAssistant = findLatestAssistantBeforeCurrentUser(history)
-  return ASK_TO_ADVANCE_DIRECT_PATTERN.test(latestAssistant)
+  return isStructuredPhaseOutput(latestAssistant, PDI_EXPRESSO_PERSONA.structuredOutputExtraPatterns)
 }
 
 // Mentoria de Carreira: Fase 2 → Fase 3

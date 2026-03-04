@@ -62,9 +62,12 @@ export function buildPdiChatSystemPrompt(
   phase: ConversationPhase,
   persona?: PersonaManifest
 ): string {
-  // Persona override tem prioridade; senão usa prompt padrão
-  const phasePrompt = persona?.systemPromptOverrides?.[phase] ?? PHASE_PROMPTS[phase]
-  return `${BASE_CHAT_PROMPT}\n\n${phasePrompt}`
+  // Persona override define identidade própria — não adicionar BASE_CHAT_PROMPT
+  // para evitar conflito de identidade no system prompt (ex: "mentor executivo sênior"
+  // vs "especialista operacional em PDI" do PDI Expresso).
+  const override = persona?.systemPromptOverrides?.[phase]
+  if (override) return override
+  return `${BASE_CHAT_PROMPT}\n\n${PHASE_PROMPTS[phase]}`
 }
 
 const SECTION_GUIDANCE: Record<PdiSectionKey, string> = {

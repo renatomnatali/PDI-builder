@@ -461,8 +461,6 @@ function chatForScreen(
     return <RevisionChatRail pdiId={pdiId} initialSummary={latestRevisionSummary} />
   }
 
-  const extraPatterns = persona.structuredOutputExtraPatterns
-
   const config =
     screen === 'phase-1-diagnostico'
       ? {
@@ -526,7 +524,7 @@ function chatForScreen(
       advancePhase={'advancePhase' in config ? config.advancePhase : undefined}
       advanceLabel={'advanceLabel' in config ? config.advanceLabel : undefined}
       assistantName={persona.assistantName}
-      extraStructuredOutputPatterns={extraPatterns}
+      personaId={persona.id}
     />
   )
 }

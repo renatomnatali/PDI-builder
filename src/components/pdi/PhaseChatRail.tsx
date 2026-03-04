@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { isStructuredPhaseOutput } from '@/lib/pdi/structured-output'
+import { getPersonaById } from '@/lib/pdi/personas'
 import { MarkdownContent } from './MarkdownContent'
 
 interface ChatMessage {
@@ -38,7 +39,9 @@ interface PhaseChatRailProps {
   advancePhase?: 'PHASE_1_DIAGNOSTICO' | 'PHASE_2_ADAPTATIVO' | 'PHASE_3_DIRECAO'
   advanceLabel?: string
   assistantName?: string
-  extraStructuredOutputPatterns?: RegExp[]
+  /** ID da persona ativa. Padrões de output estruturado são derivados internamente
+   *  a partir do registry para evitar serialização de RegExp por Server→Client. */
+  personaId?: string
 }
 
 const EMPTY_MESSAGES: ChatMessage[] = []
@@ -59,8 +62,13 @@ export function PhaseChatRail({
   advancePhase,
   advanceLabel,
   assistantName = 'Mentor Executivo',
-  extraStructuredOutputPatterns = [],
+  personaId,
 }: PhaseChatRailProps) {
+  // Deriva os padrões de output estruturado a partir do registry (não serializa RegExp)
+  const extraStructuredOutputPatterns = useMemo(
+    () => (personaId ? getPersonaById(personaId).structuredOutputExtraPatterns : []),
+    [personaId]
+  )
   const router = useRouter()
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
