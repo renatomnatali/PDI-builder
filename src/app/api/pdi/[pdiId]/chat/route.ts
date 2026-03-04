@@ -8,6 +8,7 @@ import {
 } from '@/lib/pdi/chat-engine'
 import { getOrCreateUserByClerkId, requireClerkUserId, UnauthorizedError } from '@/lib/auth/session'
 import { ensurePdiForUser, PdiNotFoundError } from '@/lib/pdi/access'
+import { getPersonaById } from '@/lib/pdi/personas'
 
 const chatRequestSchema = z.object({
   phase: z.enum([
@@ -23,16 +24,22 @@ const chatRequestSchema = z.object({
 const PHASE_2_SCREEN = 'phase-2-adaptativo'
 const PHASE_3_SCREEN = 'phase-3-direcao'
 const PHASE_4_SCREEN = 'phase-4-pdi/inicio'
+
+// Padrão: AI pede para avançar para Fase 2 (Mentoria de Carreira)
 const ASK_TO_ADVANCE_PHASE_2_PATTERN = /posso\s+avan[çc]ar\s+para\s+a\s+fase\s*2/i
+// Padrão: AI pede para avançar para Proposta de PDI (PDI Expresso)
+const ASK_TO_ADVANCE_DIRECT_PATTERN = /posso\s+avan[çc]ar\s+para\s+a\s+proposta\s+de\s+pdi/i
+
 const PHASE_2_CLOSING_PATTERN = /✅\s*confirmado|diagn[oó]stico adaptativo conclu[íi]do/i
-const ASK_ABOUT_PATH_PATTERN = /qual\s+(desses?\s+)?caminhos?|prefere\s+seguir|quer\s+seguir|por\s+qual\s+caminho|confirmar\s+o\s+caminho/i
+const ASK_ABOUT_PATH_PATTERN =
+  /qual\s+(desses?\s+)?caminhos?|prefere\s+seguir|quer\s+seguir|por\s+qual\s+caminho|confirmar\s+o\s+caminho/i
 const NEGATIVE_INTENT_PATTERN = /\b(n[aã]o|ainda n[aã]o|espera|aguarde)\b/i
 const AFFIRMATIVE_INTENT_PATTERN =
   /\b(sim|ok|fechado|perfeito|pode|podemos|vamos|bora|seguir|siga|prosseguir|avan[çc]a|avan[çc]ar|pr[oó]xima fase|continuar|continue|confirmo|confirmado)\b/i
 
-function findLatestAssistantBeforeCurrentUser(
-  history: Array<{ role: 'USER' | 'ASSISTANT' | 'SYSTEM'; content: string }>
-): string {
+type ChatHistory = Array<{ role: 'USER' | 'ASSISTANT' | 'SYSTEM'; content: string }>
+
+function findLatestAssistantBeforeCurrentUser(history: ChatHistory): string {
   for (let index = history.length - 2; index >= 0; index -= 1) {
     const message = history[index]
     if (message.role !== 'ASSISTANT') continue
@@ -48,40 +55,52 @@ function isAffirmativeForPhaseAdvance(message: string): boolean {
   return AFFIRMATIVE_INTENT_PATTERN.test(text)
 }
 
+// Mentoria de Carreira: Fase 1 → Fase 2
+function shouldAdvanceToPhase2(
+  phase: z.infer<typeof chatRequestSchema>['phase'],
+  userMessage: string,
+  history: ChatHistory
+): boolean {
+  if (phase !== 'PHASE_1_DIAGNOSTICO') return false
+  if (!isAffirmativeForPhaseAdvance(userMessage)) return false
+  const latestAssistant = findLatestAssistantBeforeCurrentUser(history)
+  return ASK_TO_ADVANCE_PHASE_2_PATTERN.test(latestAssistant)
+}
+
+// PDI Expresso: Fase 1 → Fase 3 diretamente (pula Fase 2)
+function shouldAdvanceDirectlyToPhase3(
+  phase: z.infer<typeof chatRequestSchema>['phase'],
+  userMessage: string,
+  history: ChatHistory
+): boolean {
+  if (phase !== 'PHASE_1_DIAGNOSTICO') return false
+  if (!isAffirmativeForPhaseAdvance(userMessage)) return false
+  const latestAssistant = findLatestAssistantBeforeCurrentUser(history)
+  return ASK_TO_ADVANCE_DIRECT_PATTERN.test(latestAssistant)
+}
+
+// Mentoria de Carreira: Fase 2 → Fase 3
 function shouldAdvanceToPhase3(
   phase: z.infer<typeof chatRequestSchema>['phase'],
   userMessage: string,
-  history: Array<{ role: 'USER' | 'ASSISTANT' | 'SYSTEM'; content: string }>
+  history: ChatHistory
 ): boolean {
   if (phase !== 'PHASE_2_ADAPTATIVO') return false
   if (!isAffirmativeForPhaseAdvance(userMessage)) return false
-
   const latestAssistant = findLatestAssistantBeforeCurrentUser(history)
   return PHASE_2_CLOSING_PATTERN.test(latestAssistant)
 }
 
+// Ambas as personas: Fase 3 → Fase 4
 function shouldAdvanceToPhase4(
   phase: z.infer<typeof chatRequestSchema>['phase'],
   userMessage: string,
-  history: Array<{ role: 'USER' | 'ASSISTANT' | 'SYSTEM'; content: string }>
+  history: ChatHistory
 ): boolean {
   if (phase !== 'PHASE_3_DIRECAO') return false
   if (!isAffirmativeForPhaseAdvance(userMessage)) return false
-
   const latestAssistant = findLatestAssistantBeforeCurrentUser(history)
   return ASK_ABOUT_PATH_PATTERN.test(latestAssistant)
-}
-
-function shouldAdvanceToPhase2(
-  phase: z.infer<typeof chatRequestSchema>['phase'],
-  userMessage: string,
-  history: Array<{ role: 'USER' | 'ASSISTANT' | 'SYSTEM'; content: string }>
-): boolean {
-  if (phase !== 'PHASE_1_DIAGNOSTICO') return false
-  if (!isAffirmativeForPhaseAdvance(userMessage)) return false
-
-  const latestAssistant = findLatestAssistantBeforeCurrentUser(history)
-  return ASK_TO_ADVANCE_PHASE_2_PATTERN.test(latestAssistant)
 }
 
 export async function POST(
@@ -96,6 +115,7 @@ export async function POST(
     const parsed = chatRequestSchema.parse(body)
 
     const pdi = await ensurePdiForUser(pdiId, user.id)
+    const persona = getPersonaById(pdi.personaId)
 
     const conversation = await prisma.conversation.upsert({
       where: {
@@ -104,9 +124,7 @@ export async function POST(
           phase: parsed.phase,
         },
       },
-      update: {
-        status: 'ACTIVE',
-      },
+      update: { status: 'ACTIVE' },
       create: {
         projectId: pdi.id,
         phase: parsed.phase,
@@ -123,86 +141,16 @@ export async function POST(
     })
 
     const history = await prisma.message.findMany({
-      where: {
-        conversationId: conversation.id,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
+      where: { conversationId: conversation.id },
+      orderBy: { createdAt: 'asc' },
     })
 
-    if (shouldAdvanceToPhase2(parsed.phase, parsed.message, history)) {
-      const phase2Conversation = await prisma.conversation.upsert({
-        where: {
-          projectId_phase: {
-            projectId: pdi.id,
-            phase: 'PHASE_2_ADAPTATIVO',
-          },
-        },
-        update: {
-          status: 'ACTIVE',
-        },
-        create: {
-          projectId: pdi.id,
-          phase: 'PHASE_2_ADAPTATIVO',
-          status: 'ACTIVE',
-        },
-      })
-
-      const existingPhase2Assistant = await prisma.message.findFirst({
-        where: {
-          conversationId: phase2Conversation.id,
-          role: 'ASSISTANT',
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      })
-
-      const phase2AssistantMessage =
-        existingPhase2Assistant ||
-        (await prisma.message.create({
-          data: {
-            conversationId: phase2Conversation.id,
-            role: 'ASSISTANT',
-            content: getPhase2BranchGateQuestionMessage(),
-          },
-        }))
-
-      await prisma.project.update({
-        where: { id: pdi.id },
-        data: {
-          currentPhase: 'PHASE_2_ADAPTATIVO',
-          currentScreen: PHASE_2_SCREEN,
-        },
-      })
-
-      return NextResponse.json({
-        conversationId: phase2Conversation.id,
-        assistantMessage: {
-          id: phase2AssistantMessage.id,
-          role: phase2AssistantMessage.role,
-          content: phase2AssistantMessage.content,
-          createdAt: phase2AssistantMessage.createdAt,
-        },
-        nextScreen: PHASE_2_SCREEN,
-      })
-    }
-
-    if (shouldAdvanceToPhase3(parsed.phase, parsed.message, history)) {
+    // ── Transição: PDI Expresso Fase 1 → Fase 3 (skip Phase 2) ──────────────
+    if (persona.skipsPhase2 && shouldAdvanceDirectlyToPhase3(parsed.phase, parsed.message, history)) {
       const phase3Conversation = await prisma.conversation.upsert({
-        where: {
-          projectId_phase: {
-            projectId: pdi.id,
-            phase: 'PHASE_3_DIRECAO',
-          },
-        },
+        where: { projectId_phase: { projectId: pdi.id, phase: 'PHASE_3_DIRECAO' } },
         update: { status: 'ACTIVE' },
-        create: {
-          projectId: pdi.id,
-          phase: 'PHASE_3_DIRECAO',
-          status: 'ACTIVE',
-        },
+        create: { projectId: pdi.id, phase: 'PHASE_3_DIRECAO', status: 'ACTIVE' },
       })
 
       const existingPhase3Assistant = await prisma.message.findFirst({
@@ -216,16 +164,13 @@ export async function POST(
           data: {
             conversationId: phase3Conversation.id,
             role: 'ASSISTANT',
-            content: await buildPhase3InitialMessage(history),
+            content: await buildPhase3InitialMessage(history, persona),
           },
         }))
 
       await prisma.project.update({
         where: { id: pdi.id },
-        data: {
-          currentPhase: 'PHASE_3_DIRECAO',
-          currentScreen: PHASE_3_SCREEN,
-        },
+        data: { currentPhase: 'PHASE_3_DIRECAO', currentScreen: PHASE_3_SCREEN },
       })
 
       return NextResponse.json({
@@ -240,6 +185,87 @@ export async function POST(
       })
     }
 
+    // ── Transição: Mentoria de Carreira Fase 1 → Fase 2 ─────────────────────
+    if (!persona.skipsPhase2 && shouldAdvanceToPhase2(parsed.phase, parsed.message, history)) {
+      const phase2Conversation = await prisma.conversation.upsert({
+        where: { projectId_phase: { projectId: pdi.id, phase: 'PHASE_2_ADAPTATIVO' } },
+        update: { status: 'ACTIVE' },
+        create: { projectId: pdi.id, phase: 'PHASE_2_ADAPTATIVO', status: 'ACTIVE' },
+      })
+
+      const existingPhase2Assistant = await prisma.message.findFirst({
+        where: { conversationId: phase2Conversation.id, role: 'ASSISTANT' },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      const phase2AssistantMessage =
+        existingPhase2Assistant ||
+        (await prisma.message.create({
+          data: {
+            conversationId: phase2Conversation.id,
+            role: 'ASSISTANT',
+            content: getPhase2BranchGateQuestionMessage(persona),
+          },
+        }))
+
+      await prisma.project.update({
+        where: { id: pdi.id },
+        data: { currentPhase: 'PHASE_2_ADAPTATIVO', currentScreen: PHASE_2_SCREEN },
+      })
+
+      return NextResponse.json({
+        conversationId: phase2Conversation.id,
+        assistantMessage: {
+          id: phase2AssistantMessage.id,
+          role: phase2AssistantMessage.role,
+          content: phase2AssistantMessage.content,
+          createdAt: phase2AssistantMessage.createdAt,
+        },
+        nextScreen: PHASE_2_SCREEN,
+      })
+    }
+
+    // ── Transição: Mentoria de Carreira Fase 2 → Fase 3 ─────────────────────
+    if (shouldAdvanceToPhase3(parsed.phase, parsed.message, history)) {
+      const phase3Conversation = await prisma.conversation.upsert({
+        where: { projectId_phase: { projectId: pdi.id, phase: 'PHASE_3_DIRECAO' } },
+        update: { status: 'ACTIVE' },
+        create: { projectId: pdi.id, phase: 'PHASE_3_DIRECAO', status: 'ACTIVE' },
+      })
+
+      const existingPhase3Assistant = await prisma.message.findFirst({
+        where: { conversationId: phase3Conversation.id, role: 'ASSISTANT' },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      const phase3AssistantMessage =
+        existingPhase3Assistant ||
+        (await prisma.message.create({
+          data: {
+            conversationId: phase3Conversation.id,
+            role: 'ASSISTANT',
+            content: await buildPhase3InitialMessage(history, persona),
+          },
+        }))
+
+      await prisma.project.update({
+        where: { id: pdi.id },
+        data: { currentPhase: 'PHASE_3_DIRECAO', currentScreen: PHASE_3_SCREEN },
+      })
+
+      return NextResponse.json({
+        conversationId: phase3Conversation.id,
+        assistantMessage: {
+          id: phase3AssistantMessage.id,
+          role: phase3AssistantMessage.role,
+          content: phase3AssistantMessage.content,
+          createdAt: phase3AssistantMessage.createdAt,
+        },
+        nextScreen: PHASE_3_SCREEN,
+      })
+    }
+
+    // ── Transição: Fase 3 → Fase 4 (ambas as personas) ──────────────────────
     if (shouldAdvanceToPhase4(parsed.phase, parsed.message, history)) {
       const confirmContent =
         'Caminho confirmado. Vou montar o PDI completo agora. Clique em "Gerar PDI completo" no painel central para iniciar.'
@@ -269,10 +295,12 @@ export async function POST(
       })
     }
 
+    // ── Resposta normal da AI ────────────────────────────────────────────────
     const assistantContent = await buildAssistantReply(
       parsed.phase,
       parsed.message,
-      history
+      history,
+      persona
     )
 
     const assistantMessage = await prisma.message.create({

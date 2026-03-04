@@ -37,6 +37,8 @@ interface PhaseChatRailProps {
   userProfile: UserProfile
   advancePhase?: 'PHASE_1_DIAGNOSTICO' | 'PHASE_2_ADAPTATIVO' | 'PHASE_3_DIRECAO'
   advanceLabel?: string
+  assistantName?: string
+  extraStructuredOutputPatterns?: RegExp[]
 }
 
 const EMPTY_MESSAGES: ChatMessage[] = []
@@ -56,6 +58,8 @@ export function PhaseChatRail({
   userProfile,
   advancePhase,
   advanceLabel,
+  assistantName = 'Mentor Executivo',
+  extraStructuredOutputPatterns = [],
 }: PhaseChatRailProps) {
   const router = useRouter()
   const [input, setInput] = useState('')
@@ -84,9 +88,9 @@ export function PhaseChatRail({
       messages.filter((message) => {
         if (!promoteStructuredAssistantOutputToWorkspace) return true
         if (message.role !== 'ASSISTANT') return true
-        return !isStructuredPhaseOutput(message.content)
+        return !isStructuredPhaseOutput(message.content, extraStructuredOutputPatterns)
       }),
-    [messages, promoteStructuredAssistantOutputToWorkspace]
+    [messages, promoteStructuredAssistantOutputToWorkspace, extraStructuredOutputPatterns]
   )
 
   // Verifica se o último assistente enviou o bloco de fechamento —
@@ -97,11 +101,11 @@ export function PhaseChatRail({
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i]
       if (msg.role === 'ASSISTANT') {
-        return isStructuredPhaseOutput(msg.content)
+        return isStructuredPhaseOutput(msg.content, extraStructuredOutputPatterns)
       }
     }
     return false
-  }, [messages, advancePhase])
+  }, [messages, advancePhase, extraStructuredOutputPatterns])
 
   async function handleAdvance() {
     if (!advancePhase || isAdvancing) return
@@ -180,7 +184,7 @@ export function PhaseChatRail({
 
       const shouldPromoteToWorkspace =
         promoteStructuredAssistantOutputToWorkspace &&
-        isStructuredPhaseOutput(assistantMessage.content)
+        isStructuredPhaseOutput(assistantMessage.content, extraStructuredOutputPatterns)
 
       setMessages((prev) => (shouldPromoteToWorkspace ? prev : [...prev, assistantMessage]))
 
@@ -266,7 +270,7 @@ export function PhaseChatRail({
             </div>
             <div className={`chat-bubble ${message.role === 'USER' ? 'user' : ''}`} style={message.role === 'USER' ? { whiteSpace: 'pre-line' } : undefined}>
               <span className="chat-author">
-                {message.role === 'USER' ? userProfile.name || 'Você' : 'Mentor Executivo'}
+                {message.role === 'USER' ? userProfile.name || 'Você' : assistantName}
               </span>
               {message.role === 'USER' ? message.content : <MarkdownContent content={message.content} />}
             </div>

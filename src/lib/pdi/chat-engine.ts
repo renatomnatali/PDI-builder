@@ -2,32 +2,26 @@ import type { ConversationPhase, Message } from '@prisma/client'
 import { chatWithAI } from '@/lib/ai/client'
 import { buildPdiChatSystemPrompt } from './prompts'
 import { isStructuredPhaseOutput } from './structured-output'
+import { type PersonaManifest, MENTORIA_CARREIRA_PERSONA } from './personas'
 
-export function getPhase1AnchorQuestionsMessage(): string {
-  return PHASE1_ANCHOR_QUESTIONS[0]
+export function getPhase1AnchorQuestionsMessage(persona?: PersonaManifest): string {
+  const questions = persona?.anchorQuestions ?? MENTORIA_CARREIRA_PERSONA.anchorQuestions
+  return questions[0]
 }
 
-export function getPhase2BranchGateQuestionMessage(): string {
-  return PHASE2_BRANCH_GATE_QUESTION
+export function getPhase2BranchGateQuestionMessage(persona?: PersonaManifest): string {
+  const gateQuestion =
+    persona?.phase2GateQuestion ?? MENTORIA_CARREIRA_PERSONA.phase2GateQuestion
+  return gateQuestion ?? ''
 }
-
-const PHASE1_ANCHOR_QUESTIONS = [
-  '1. Onde você está hoje? (cargo, senioridade, empresa/setor, regime de trabalho)',
-  '2. Qual resultado concreto você quer em 12 meses? (cargo, impacto e faixa salarial)',
-  '3. Na sua visão, qual é o maior obstáculo entre o estado atual e o objetivo?',
-  '4. Qual sua formação acadêmica atual? (curso, nível e status)',
-] as const
-
-const PHASE2_BRANCH_GATE_QUESTION =
-  'Agora vou aprofundar o diagnóstico. Me conta: no seu dia a dia, como esse obstáculo aparece concretamente? Pode ser uma situação recente, um padrão que se repete ou uma tensão que você sente com frequência.'
 
 const FALLBACK_BY_PHASE: Record<ConversationPhase, string> = {
   PHASE_1_DIAGNOSTICO:
-    'Não consegui concluir o diagnóstico âncora agora. Reenvie suas respostas para eu identificar o obstáculo principal e seguir para a Fase 2.',
+    'Não consegui concluir a coleta inicial agora. Reenvie suas respostas para eu identificar o obstáculo principal e seguir para a próxima etapa.',
   PHASE_2_ADAPTATIVO:
     'Não consegui concluir o diagnóstico adaptativo agora. Reenvie sua última resposta para eu classificar o ramo e fechar ✅ Confirmado / ⚠️ Falta.',
   PHASE_3_DIRECAO:
-    'Não consegui concluir a hipótese de direção agora. Reenvie para eu retornar os caminhos e recomendação.',
+    'Não consegui concluir a proposta de direção agora. Reenvie para eu retornar os caminhos e recomendação.',
   PHASE_5_FINAL:
     'Não consegui atualizar os entregáveis finais agora. Reenvie o ajuste desejado para eu recalibrar o documento.',
   PHASE_REVISAO:
@@ -49,10 +43,10 @@ function countUserMessages(history: Message[]): number {
   return history.filter((message) => message.role === 'USER').length
 }
 
-function normalizePhase2SingleQuestion(content: string): string {
+function normalizePhase2SingleQuestion(content: string, extraPatterns: RegExp[] = []): string {
   const text = content.trim()
   if (!text) return text
-  if (isStructuredPhaseOutput(text)) return text
+  if (isStructuredPhaseOutput(text, extraPatterns)) return text
 
   const questionMatches = text
     .split(/\n+/)
@@ -78,14 +72,17 @@ function normalizePhase2SingleQuestion(content: string): string {
   return `${intro}\n\n${firstQuestion}`
 }
 
-export async function buildPhase3InitialMessage(phase2History: Message[]): Promise<string> {
+export async function buildPhase3InitialMessage(
+  phase2History: Message[],
+  persona?: PersonaManifest
+): Promise<string> {
   try {
     const aiMessages = toAIMessage(phase2History)
     aiMessages.push({ role: 'user', content: 'Pode avançar para a proposta de direção.' })
 
     const response = await chatWithAI({
       phase: 'pdi_chat',
-      systemPrompt: buildPdiChatSystemPrompt('PHASE_3_DIRECAO'),
+      systemPrompt: buildPdiChatSystemPrompt('PHASE_3_DIRECAO', persona),
       messages: aiMessages,
     })
 
@@ -99,17 +96,19 @@ export async function buildPhase3InitialMessage(phase2History: Message[]): Promi
 export async function buildAssistantReply(
   phase: ConversationPhase,
   userMessage: string,
-  history: Message[]
+  history: Message[],
+  persona?: PersonaManifest
 ) {
+  const activePersona = persona ?? MENTORIA_CARREIRA_PERSONA
+  const extraPatterns = activePersona.structuredOutputExtraPatterns
+  const anchorQuestions = activePersona.anchorQuestions
+
   if (phase === 'PHASE_1_DIAGNOSTICO') {
     const userCount = countUserMessages(history)
-    const nextIndex = Math.min(
-      userCount,
-      PHASE1_ANCHOR_QUESTIONS.length - 1
-    )
+    const nextIndex = Math.min(userCount, anchorQuestions.length - 1)
 
-    if (userCount < PHASE1_ANCHOR_QUESTIONS.length) {
-      return PHASE1_ANCHOR_QUESTIONS[nextIndex]
+    if (userCount < anchorQuestions.length) {
+      return anchorQuestions[nextIndex]
     }
   }
 
@@ -121,7 +120,7 @@ export async function buildAssistantReply(
 
     const response = await chatWithAI({
       phase: 'pdi_chat',
-      systemPrompt: buildPdiChatSystemPrompt(phase),
+      systemPrompt: buildPdiChatSystemPrompt(phase, activePersona),
       messages: aiMessages,
     })
 
@@ -131,7 +130,7 @@ export async function buildAssistantReply(
     }
 
     if (phase === 'PHASE_2_ADAPTATIVO') {
-      return normalizePhase2SingleQuestion(text)
+      return normalizePhase2SingleQuestion(text, extraPatterns)
     }
 
     return text

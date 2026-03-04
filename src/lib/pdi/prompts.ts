@@ -1,5 +1,6 @@
 import type { ConversationPhase } from '@prisma/client'
 import type { PdiSectionKey, PdiSectionsMap } from './orchestrator'
+import type { PersonaManifest } from './personas'
 
 const BASE_CHAT_PROMPT = `Você é um mentor executivo sênior de carreira.
 Responda sempre em português do Brasil.
@@ -57,8 +58,13 @@ Receba pedido de alteração e proponha ajustes consistentes entre seções.
 Explique brevemente impactos das mudanças.`,
 }
 
-export function buildPdiChatSystemPrompt(phase: ConversationPhase): string {
-  return `${BASE_CHAT_PROMPT}\n\n${PHASE_PROMPTS[phase]}`
+export function buildPdiChatSystemPrompt(
+  phase: ConversationPhase,
+  persona?: PersonaManifest
+): string {
+  // Persona override tem prioridade; senão usa prompt padrão
+  const phasePrompt = persona?.systemPromptOverrides?.[phase] ?? PHASE_PROMPTS[phase]
+  return `${BASE_CHAT_PROMPT}\n\n${phasePrompt}`
 }
 
 const SECTION_GUIDANCE: Record<PdiSectionKey, string> = {
