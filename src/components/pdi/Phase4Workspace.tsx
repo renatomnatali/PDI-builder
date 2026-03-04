@@ -72,7 +72,7 @@ export function Phase4Workspace({
   const [sectionStatus, setSectionStatus] = useState<Record<PdiSectionKey, PdiSectionStatus>>(
     createInitialStatus(initialSections)
   )
-  const [mergedDocument, setMergedDocument] = useState(initialMergedDocument)
+  const [, setMergedDocument] = useState(initialMergedDocument)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<PdiSectionKey>>(new Set())

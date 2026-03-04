@@ -442,9 +442,11 @@ function chatForScreen(
           phaseLabel: 'Fase 1/5',
           progress: 20,
           progressText: 'Diagnóstico âncora em andamento',
-          placeholder: 'Responda as perguntas da fase 1...',
-          ctaPrimary: 'Enviar respostas',
+          placeholder: 'Responda ao mentor...',
+          ctaPrimary: 'Enviar',
           promoteStructuredAssistantOutputToWorkspace: true,
+          advancePhase: 'PHASE_1_DIAGNOSTICO' as const,
+          advanceLabel: 'Avançar para o Diagnóstico Adaptativo →',
         }
       : screen === 'phase-2-adaptativo'
         ? {
@@ -452,10 +454,11 @@ function chatForScreen(
             phaseLabel: 'Fase 2/5',
             progress: 38,
             progressText: 'Diagnóstico adaptativo com triangulação de mercado',
-            placeholder: 'Detalhe seu ramo principal e evidências...',
-            ctaPrimary: 'Enviar diagnóstico',
-            ctaSecondary: 'Pedir resumo',
+            placeholder: 'Responda ao mentor...',
+            ctaPrimary: 'Enviar',
             promoteStructuredAssistantOutputToWorkspace: true,
+            advancePhase: 'PHASE_2_ADAPTATIVO' as const,
+            advanceLabel: 'Avançar para a Hipótese de Direção →',
           }
         : screen === 'phase-3-direcao'
           ? {
@@ -463,19 +466,19 @@ function chatForScreen(
               phaseLabel: 'Fase 3/5',
               progress: 54,
               progressText: 'Hipótese de direção pronta para validação',
-              placeholder: 'Confirme o caminho estratégico ou peça ajustes...',
-              ctaPrimary: 'Confirmar caminho',
-              ctaSecondary: 'Ajustar direção',
+              placeholder: 'Peça ajustes ou escreva sua confirmação...',
+              ctaPrimary: 'Enviar',
               promoteStructuredAssistantOutputToWorkspace: true,
+              advancePhase: 'PHASE_3_DIRECAO' as const,
+              advanceLabel: 'Confirmar direção e gerar PDI completo →',
             }
           : {
               phase: 'PHASE_5_FINAL' as const,
               phaseLabel: 'Fase 5/5',
               progress: 100,
               progressText: 'Entregáveis finais prontos para formalização',
-              placeholder: 'Peça ajustes no checklist, OKRs ou one-pager...',
-              ctaPrimary: 'Solicitar ajuste',
-              ctaSecondary: 'Exportar PDF',
+              placeholder: 'Peça ajustes no documento...',
+              ctaPrimary: 'Enviar',
               promoteStructuredAssistantOutputToWorkspace: true,
             }
 
@@ -489,10 +492,11 @@ function chatForScreen(
       progressText={config.progressText}
       placeholder={config.placeholder}
       ctaPrimary={config.ctaPrimary}
-      ctaSecondary={config.ctaSecondary}
       promoteStructuredAssistantOutputToWorkspace={config.promoteStructuredAssistantOutputToWorkspace}
       initialMessages={initialMessagesForScreen(screen, conversations)}
       userProfile={userProfile}
+      advancePhase={'advancePhase' in config ? config.advancePhase : undefined}
+      advanceLabel={'advanceLabel' in config ? config.advanceLabel : undefined}
     />
   )
 }
