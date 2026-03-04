@@ -122,7 +122,7 @@ export function PhaseChatRail({
       const response = await fetch(`/api/pdi/${pdiId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phase: advancePhase, message: 'sim' }),
+        body: JSON.stringify({ phase: advancePhase, message: 'sim', action: 'advance' }),
       })
       const data = await response.json()
       if (typeof data.nextScreen === 'string' && data.nextScreen.trim().length > 0) {

@@ -20,6 +20,9 @@ const chatRequestSchema = z.object({
     'PHASE_REVISAO',
   ]),
   message: z.string().min(1).max(12000),
+  /** Presente apenas quando o botão CTA dispara avanço explícito de fase.
+   *  Nunca enviado por mensagens normais de chat — evita falsos positivos. */
+  action: z.literal('advance').optional(),
 })
 
 const PHASE_2_SCREEN = 'phase-2-adaptativo'
@@ -91,18 +94,18 @@ function shouldAdvanceToPhase3(
 }
 
 // Ambas as personas: Fase 3 → Fase 4
-// Não depende da última mensagem da IA — verifica se a proposta estruturada
-// foi gerada em QUALQUER ponto do histórico. Isso resolve o caso em que a IA
-// faz follow-up após o usuário escolher o caminho: o botão CTA e mensagens
-// afirmativas subsequentes continuam funcionando.
+// Só dispara quando action === 'advance' (enviado exclusivamente pelo botão CTA).
+// Mensagens de chat normais nunca transitam — elimina falsos positivos como
+// "sim, entendi mas preciso alterar". Safety check: proposta estruturada deve
+// existir no histórico antes de avançar.
 function shouldAdvanceToPhase4(
   phase: z.infer<typeof chatRequestSchema>['phase'],
-  userMessage: string,
+  action: string | undefined,
   history: ChatHistory,
   extraPatterns: RegExp[] = []
 ): boolean {
   if (phase !== 'PHASE_3_DIRECAO') return false
-  if (!isAffirmativeForPhaseAdvance(userMessage)) return false
+  if (action !== 'advance') return false
   return history.some(
     (m) => m.role === 'ASSISTANT' && isStructuredPhaseOutput(m.content, extraPatterns)
   )
@@ -271,7 +274,7 @@ export async function POST(
     }
 
     // ── Transição: Fase 3 → Fase 4 (ambas as personas) ──────────────────────
-    if (shouldAdvanceToPhase4(parsed.phase, parsed.message, history, persona.structuredOutputExtraPatterns)) {
+    if (shouldAdvanceToPhase4(parsed.phase, parsed.action, history, persona.structuredOutputExtraPatterns)) {
       const confirmContent =
         'Caminho confirmado. Vou montar o PDI completo agora. Clique em "Gerar PDI completo" no painel central para iniciar.'
 
