@@ -128,10 +128,12 @@ export function Phase4Workspace({
     setIsGenerating(true)
 
     try {
+      // Não envia `briefing` se estiver vazio — o schema Zod exige min(1) quando presente
+      const briefingTrimmed = briefing.trim()
       const response = await fetch(`/api/pdi/${pdiId}/pdi/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ briefing }),
+        body: JSON.stringify(briefingTrimmed ? { briefing: briefingTrimmed } : {}),
       })
 
       if (!response.ok) {
