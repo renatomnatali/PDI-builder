@@ -19,6 +19,8 @@ export interface PersonaManifest {
   estimatedTime: string
   assistantName: string
   chatTitle: string
+  /** Quando true, a modalidade não está disponível ainda (exibida como "Em breve"). */
+  isPremium?: boolean
 
   // Camada 2 — Fluxo
   skipsPhase2: boolean
@@ -48,6 +50,7 @@ export interface PersonaManifest {
 export const MENTORIA_CARREIRA_PERSONA: PersonaManifest = {
   id: 'mentoria-carreira',
   displayName: 'Mentoria de Carreira',
+  isPremium: true,
   shortDescription:
     'Diagnóstico adaptativo profundo com classificação de ramo, triangulação de mercado e hipótese de direção personalizada.',
   estimatedTime: '~45 min',
@@ -208,8 +211,8 @@ export const PERSONA_REGISTRY: Record<PersonaId, PersonaManifest> = {
 }
 
 export const ALL_PERSONAS: PersonaManifest[] = [
-  MENTORIA_CARREIRA_PERSONA,
   PDI_EXPRESSO_PERSONA,
+  MENTORIA_CARREIRA_PERSONA,
 ]
 
 export function getPersonaById(id: string): PersonaManifest {

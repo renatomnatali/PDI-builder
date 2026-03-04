@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-/** Subconjunto serializável de PersonaManifest — apenas campos string usados pela UI.
+/** Subconjunto serializável de PersonaManifest — apenas campos primitivos usados pela UI.
  *  Evita passar RegExp[] (structuredOutputExtraPatterns) de Server para Client Component. */
 export interface PersonaOption {
   id: string
@@ -11,6 +11,8 @@ export interface PersonaOption {
   shortDescription: string
   estimatedTime: string
   assistantName: string
+  /** Quando true, a modalidade está bloqueada e exibida como "Em breve". */
+  isPremium?: boolean
 }
 
 interface PersonaSelectorProps {
@@ -80,42 +82,68 @@ export function PersonaSelector({ pdiId, personas, currentPersonaId }: PersonaSe
         {personas.map((persona) => {
           const isActive = persona.id === currentPersonaId
           const isLoadingThis = loading === persona.id
+          const isPremium = persona.isPremium === true
 
           return (
             <button
               key={persona.id}
-              onClick={() => selectPersona(persona.id)}
-              disabled={loading !== null}
+              onClick={() => (!isPremium ? selectPersona(persona.id) : undefined)}
+              disabled={loading !== null || isPremium}
               style={{
-                border: `2px solid ${isActive ? 'var(--color-brand-500, #3b82f6)' : 'var(--color-border)'}`,
+                border: `2px solid ${
+                  isPremium
+                    ? 'var(--color-border)'
+                    : isActive
+                      ? 'var(--color-brand-500, #3b82f6)'
+                      : 'var(--color-border)'
+                }`,
                 borderRadius: 'var(--radius-lg)',
-                background: isActive ? 'var(--color-info-light, #eff6ff)' : '#fff',
+                background: isPremium ? 'var(--color-bg-muted, #f9fafb)' : isActive ? 'var(--color-info-light, #eff6ff)' : '#fff',
                 padding: '28px 24px',
                 textAlign: 'left',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading && !isLoadingThis ? 0.6 : 1,
+                cursor: isPremium ? 'default' : loading ? 'not-allowed' : 'pointer',
+                opacity: isPremium ? 0.65 : loading && !isLoadingThis ? 0.6 : 1,
                 transition: 'border-color 0.15s, box-shadow 0.15s',
-                boxShadow: isActive ? '0 0 0 3px rgba(59,130,246,0.15)' : 'var(--shadow-sm)',
+                boxShadow: isActive && !isPremium ? '0 0 0 3px rgba(59,130,246,0.15)' : 'var(--shadow-sm)',
+                position: 'relative',
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <h2 style={{ margin: 0, fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)' }}>
+                <h2 style={{ margin: 0, fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', color: isPremium ? 'var(--color-text-secondary)' : undefined }}>
                   {persona.displayName}
                 </h2>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    padding: '3px 8px',
-                    borderRadius: 'var(--radius-pill)',
-                    background: 'var(--color-bg-muted)',
-                    color: 'var(--color-text-secondary)',
-                    whiteSpace: 'nowrap',
-                    marginLeft: 8,
-                  }}
-                >
-                  {persona.estimatedTime}
-                </span>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 8, flexShrink: 0 }}>
+                  {isPremium && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: 'var(--radius-pill)',
+                        background: 'var(--color-warning-light, #fef9c3)',
+                        color: 'var(--color-warning-dark, #92400e)',
+                        whiteSpace: 'nowrap',
+                        letterSpacing: '0.03em',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Em breve
+                    </span>
+                  )}
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      borderRadius: 'var(--radius-pill)',
+                      background: 'var(--color-bg-muted)',
+                      color: 'var(--color-text-secondary)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {persona.estimatedTime}
+                  </span>
+                </div>
               </div>
 
               <p
@@ -143,21 +171,36 @@ export function PersonaSelector({ pdiId, personas, currentPersonaId }: PersonaSe
                 <strong style={{ color: 'var(--color-text-secondary)' }}>{persona.assistantName}</strong>
               </div>
 
-              <div
-                className={`btn primary`}
-                style={{
-                  display: 'inline-block',
-                  pointerEvents: 'none',
-                  fontSize: 'var(--font-size-sm)',
-                  padding: '9px 20px',
-                }}
-              >
-                {isLoadingThis
-                  ? 'Configurando...'
-                  : isActive
-                    ? 'Selecionado ✓'
-                    : 'Selecionar esta modalidade'}
-              </div>
+              {isPremium ? (
+                <div
+                  className="btn secondary"
+                  style={{
+                    display: 'inline-block',
+                    pointerEvents: 'none',
+                    fontSize: 'var(--font-size-sm)',
+                    padding: '9px 20px',
+                    opacity: 0.5,
+                  }}
+                >
+                  Disponível em breve
+                </div>
+              ) : (
+                <div
+                  className="btn primary"
+                  style={{
+                    display: 'inline-block',
+                    pointerEvents: 'none',
+                    fontSize: 'var(--font-size-sm)',
+                    padding: '9px 20px',
+                  }}
+                >
+                  {isLoadingThis
+                    ? 'Configurando...'
+                    : isActive
+                      ? 'Selecionado ✓'
+                      : 'Selecionar esta modalidade'}
+                </div>
+              )}
             </button>
           )
         })}
