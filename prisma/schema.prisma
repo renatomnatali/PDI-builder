@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+
+  projects Project[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Project {
+  id          String        @id
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  status      ProjectStatus @default(DIAGNOSTICO)
+
+  currentPhase  ProjectPhase @default(PHASE_1_DIAGNOSTICO)
+  currentScreen String       @default("phase-1-diagnostico")
+  personaId     String       @default("mentoria-carreira")
+
+  conversations  Conversation[]
+  documents      PdiDocument[]
+  generationRuns PdiGenerationRun[]
+  revisions      PdiRevision[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([currentPhase])
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  DIAGNOSTICO
+  DIRECAO
+  GERANDO_PDI
+  PDI_CONCLUIDO
+  PDI_FALHOU
+}
+
+enum ProjectPhase {
+  PHASE_1_DIAGNOSTICO
+  PHASE_2_ADAPTATIVO
+  PHASE_3_DIRECAO
+  PHASE_4_PDI
+  PHASE_5_FINAL
+  PHASE_REVISAO
+}
+
+model Conversation {
+  id        String            @id @default(cuid())
+  projectId String
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase     ConversationPhase
+  status    ConversationStatus @default(ACTIVE)
+
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, phase])
+  @@index([projectId, status])
+  @@map("conversations")
+}
+
+enum ConversationPhase {
+  PHASE_1_DIAGNOSTICO
+  PHASE_2_ADAPTATIVO
+  PHASE_3_DIRECAO
+  PHASE_5_FINAL
+  PHASE_REVISAO
+}
+
+enum ConversationStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role    MessageRole
+  content String      @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model PdiDocument {
+  id        String            @id @default(cuid())
+  projectId String
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  version        Int
+  status         PdiDocumentStatus @default(IN_PROGRESS)
+  fullContent    String?           @db.Text
+  summaryContent String?           @db.Text
+
+  sections       PdiDocumentSection[]
+  runs           PdiGenerationRun[]
+  revisionsFrom  PdiRevision[]      @relation("RevisionFrom")
+  revisionsTo    PdiRevision[]      @relation("RevisionTo")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, version])
+  @@index([projectId, status])
+  @@map("pdi_documents")
+}
+
+enum PdiDocumentStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model PdiDocumentSection {
+  id         String           @id @default(cuid())
+  documentId String
+  document   PdiDocument      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  sectionKey   String
+  status       PdiSectionStatus @default(PENDING)
+  content      String?          @db.Text
+  errorMessage String?          @db.Text
+  generatedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([documentId, sectionKey])
+  @@index([documentId, status])
+  @@map("pdi_document_sections")
+}
+
+enum PdiSectionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model PdiGenerationRun {
+  id         String              @id @default(cuid())
+  projectId  String
+  project    Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  documentId String
+  document   PdiDocument         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  status         PdiGenerationRunStatus @default(RUNNING)
+  currentSection String?
+  errorSummary   String?                @db.Text
+
+  startedAt  DateTime @default(now())
+  finishedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([projectId, status])
+  @@index([documentId])
+  @@map("pdi_generation_runs")
+}
+
+enum PdiGenerationRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model PdiRevision {
+  id             String      @id @default(cuid())
+  projectId      String
+  project        Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fromDocumentId String
+  fromDocument   PdiDocument @relation("RevisionFrom", fields: [fromDocumentId], references: [id], onDelete: Cascade)
+  toDocumentId   String
+  toDocument     PdiDocument @relation("RevisionTo", fields: [toDocumentId], references: [id], onDelete: Cascade)
+
+  requestText String @db.Text
+  summary     String @db.Text
+  diffJson    Json
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([fromDocumentId])
+  @@index([toDocumentId])
+  @@map("pdi_revisions")
+}

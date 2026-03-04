@@ -4,6 +4,7 @@ import {
 } from '@/lib/pdi/chat-engine'
 import { isStructuredPhaseOutput } from '@/lib/pdi/structured-output'
 import { PDI_SECTION_ORDER, type PdiSectionKey } from '@/lib/pdi/orchestrator'
+import { type PersonaManifest, MENTORIA_CARREIRA_PERSONA } from '@/lib/pdi/personas'
 import { MarkdownContent } from './MarkdownContent'
 import { PdiShell } from './PdiShell'
 import { PhaseChatRail } from './PhaseChatRail'
@@ -55,6 +56,7 @@ interface PdiScreenProps {
     email?: string | null
     avatarUrl?: string | null
   }
+  persona?: PersonaManifest
 }
 
 function getConversationPhase(screen: ScreenKey) {
@@ -68,7 +70,8 @@ function getConversationPhase(screen: ScreenKey) {
 
 function initialMessagesForScreen(
   screen: ScreenKey,
-  conversations: ConversationPayload[]
+  conversations: ConversationPayload[],
+  persona: PersonaManifest
 ): ChatMessage[] {
   const phase = getConversationPhase(screen)
   if (!phase) return []
@@ -81,7 +84,7 @@ function initialMessagesForScreen(
       {
         id: 'phase-1-anchor',
         role: 'ASSISTANT',
-        content: getPhase1AnchorQuestionsMessage(),
+        content: getPhase1AnchorQuestionsMessage(persona),
       },
     ]
   }
@@ -91,7 +94,7 @@ function initialMessagesForScreen(
       {
         id: 'phase-2-gate',
         role: 'ASSISTANT',
-        content: getPhase2BranchGateQuestionMessage(),
+        content: getPhase2BranchGateQuestionMessage(persona),
       },
     ]
   }
@@ -101,7 +104,8 @@ function initialMessagesForScreen(
 
 function latestStructuredAssistantMessageForPhase(
   conversations: ConversationPayload[],
-  phase: string
+  phase: string,
+  extraPatterns: RegExp[] = []
 ): string | null {
   const conversation = conversations.find((item) => item.phase === phase)
   if (!conversation) return null
@@ -109,14 +113,18 @@ function latestStructuredAssistantMessageForPhase(
   for (let index = conversation.messages.length - 1; index >= 0; index -= 1) {
     const message = conversation.messages[index]
     if (message.role !== 'ASSISTANT') continue
-    if (!isStructuredPhaseOutput(message.content)) continue
+    if (!isStructuredPhaseOutput(message.content, extraPatterns)) continue
     return message.content
   }
 
   return null
 }
 
-function sidebarForScreen(screen: ScreenKey, sectionsMap: Record<string, string>) {
+function sidebarForScreen(
+  screen: ScreenKey,
+  sectionsMap: Record<string, string>,
+  persona: PersonaManifest
+) {
   const isPhase1 = screen === 'phase-1-diagnostico'
   const isPhase2 = screen === 'phase-2-adaptativo'
   const isPhase3 = screen === 'phase-3-direcao'
@@ -126,28 +134,40 @@ function sidebarForScreen(screen: ScreenKey, sectionsMap: Record<string, string>
   const isReview = screen === 'phase-5-final/revisao'
 
   const beforePhase4 = isPhase1 || isPhase2 || isPhase3
+  const skipsPhase2 = persona.skipsPhase2
+
+  const phase1Label = persona.phases?.PHASE_1_DIAGNOSTICO?.sidebarLabel ?? 'Diagnóstico Âncora'
+  const phase2Label = persona.phases?.PHASE_2_ADAPTATIVO?.sidebarLabel ?? 'Diagnóstico Adaptativo'
+  const phase3Label = persona.phases?.PHASE_3_DIRECAO?.sidebarLabel ?? 'Hipótese de Direção'
+  const phase5Label = persona.phases?.PHASE_5_FINAL?.sidebarLabel ?? 'Entregáveis Finais'
 
   return (
     <>
       <div className="nav-label">FASES</div>
       <div className={`nav-item ${isPhase1 ? 'active' : 'done'}`}>
-        <span>1. Diagnóstico Âncora</span>
+        <span>1. {phase1Label}</span>
         <span className={`badge ${isPhase1 ? 'warning' : 'success'}`}>{isPhase1 ? 'ATUAL' : 'OK'}</span>
       </div>
-      <div className={`nav-item ${isPhase2 ? 'active' : isPhase1 ? 'blocked' : 'done'}`}>
-        <span>2. Diagnóstico Adaptativo</span>
-        <span className={`badge ${isPhase2 ? 'warning' : isPhase1 ? 'info' : 'success'}`}>
-          {isPhase2 ? 'ATUAL' : isPhase1 ? 'BLOQ' : 'OK'}
-        </span>
-      </div>
+
+      {/* Fase 2 só aparece na persona Mentoria de Carreira */}
+      {!skipsPhase2 ? (
+        <div className={`nav-item ${isPhase2 ? 'active' : isPhase1 ? 'blocked' : 'done'}`}>
+          <span>2. {phase2Label}</span>
+          <span className={`badge ${isPhase2 ? 'warning' : isPhase1 ? 'info' : 'success'}`}>
+            {isPhase2 ? 'ATUAL' : isPhase1 ? 'BLOQ' : 'OK'}
+          </span>
+        </div>
+      ) : null}
+
       <div className={`nav-item ${isPhase3 ? 'active' : isPhase1 || isPhase2 ? 'blocked' : 'done'}`}>
-        <span>3. Hipótese de Direção</span>
+        <span>{skipsPhase2 ? '2.' : '3.'} {phase3Label}</span>
         <span className={`badge ${isPhase3 ? 'warning' : isPhase1 || isPhase2 ? 'info' : 'success'}`}>
           {isPhase3 ? 'ATUAL' : isPhase1 || isPhase2 ? 'BLOQ' : 'OK'}
         </span>
       </div>
+
       <div className={`nav-item ${isPhase4 ? 'active' : beforePhase4 ? 'blocked' : 'done'}`}>
-        <span>4. PDI Completo</span>
+        <span>{skipsPhase2 ? '3.' : '4.'} PDI Completo</span>
         <span className={`badge ${isPhase4 ? 'warning' : beforePhase4 ? 'info' : 'success'}`}>
           {isPhase4 ? 'ATUAL' : beforePhase4 ? 'BLOQ' : 'OK'}
         </span>
@@ -173,7 +193,7 @@ function sidebarForScreen(screen: ScreenKey, sectionsMap: Record<string, string>
       ) : null}
 
       <div className={`nav-item ${isPhase5 ? 'active' : isReview ? 'done' : isPhase4Consolidado ? 'active' : 'blocked'}`}>
-        <span>5. Entregáveis Finais</span>
+        <span>{skipsPhase2 ? '4.' : '5.'} {phase5Label}</span>
         <span className={`badge ${isPhase5 ? 'warning' : isReview ? 'success' : isPhase4Consolidado ? 'brand' : 'info'}`}>
           {isPhase5 ? 'ATUAL' : isReview ? 'OK' : isPhase4Consolidado ? 'PRÓXIMO' : 'BLOQ'}
         </span>
@@ -199,6 +219,7 @@ function workspaceForScreen(
   phase2StructuredOutput: string | null,
   phase3StructuredOutput: string | null,
   phase5StructuredOutput: string | null,
+  persona: PersonaManifest,
   latestRevisionSummary?: string | null
 ) {
   if (screen === 'phase-4-pdi/inicio') {
@@ -234,14 +255,18 @@ function workspaceForScreen(
     )
   }
 
+  const phase1Label = persona.phases?.PHASE_1_DIAGNOSTICO?.sidebarLabel ?? 'Diagnóstico Âncora'
+  const phase2Label = persona.phases?.PHASE_2_ADAPTATIVO?.sidebarLabel ?? 'Diagnóstico Adaptativo'
+  const phase3Label = persona.phases?.PHASE_3_DIRECAO?.sidebarLabel ?? 'Hipótese de Direção'
+
   if (screen === 'phase-1-diagnostico') {
     return (
       <>
         <header className="workspace-header">
-          <div className="workspace-breadcrumb">Fase 1 · Diagnóstico Âncora</div>
+          <div className="workspace-breadcrumb">Fase 1 · {phase1Label}</div>
           <h1 className="workspace-title">Mapeamento do ponto de partida</h1>
           <p className="workspace-subtitle">
-            A conversa no chat conduz as perguntas âncora e registra as respostas confirmadas desta sessão.
+            A conversa no chat conduz as perguntas iniciais e registra as respostas confirmadas desta sessão.
           </p>
         </header>
         <section className="workspace-body">
@@ -259,7 +284,7 @@ function workspaceForScreen(
             <div className="card-header"><h2 className="card-title">Como esta fase funciona</h2></div>
             <div className="card-body">
               <div className="callout info">
-                O assistente conduz as 4 perguntas iniciais, uma por vez, diretamente no chat. Responda no painel à direita para seguir para a fase adaptativa.
+                O assistente conduz as perguntas iniciais, uma por vez, diretamente no chat. Responda no painel à direita para seguir para a próxima etapa.
               </div>
             </div>
           </article>
@@ -272,7 +297,7 @@ function workspaceForScreen(
     return (
       <>
         <header className="workspace-header">
-          <div className="workspace-breadcrumb">Fase 2 · Diagnóstico Adaptativo</div>
+          <div className="workspace-breadcrumb">Fase 2 · {phase2Label}</div>
           <h1 className="workspace-title">Classificação do ramo e perguntas dinâmicas</h1>
           <p className="workspace-subtitle">O mentor analisa seu obstáculo e aprofunda com perguntas específicas do padrão identificado.</p>
         </header>
@@ -305,15 +330,15 @@ function workspaceForScreen(
     return (
       <>
         <header className="workspace-header">
-          <div className="workspace-breadcrumb">Fase 3 · Hipótese de Direção</div>
-          <h1 className="workspace-title">Síntese estratégica e escolha de caminho</h1>
-          <p className="workspace-subtitle">O mentor sintetiza o diagnóstico, mapeia caminhos possíveis e apresenta uma recomendação fundamentada.</p>
+          <div className="workspace-breadcrumb">Fase 3 · {phase3Label}</div>
+          <h1 className="workspace-title">Síntese e escolha de caminho</h1>
+          <p className="workspace-subtitle">O especialista sintetiza o diagnóstico, mapeia caminhos possíveis e apresenta uma recomendação fundamentada.</p>
         </header>
         <section className="workspace-body">
           {phase3StructuredOutput ? (
             <article className="card">
               <div className="card-header">
-                <h2 className="card-title">Direção estratégica</h2>
+                <h2 className="card-title">Proposta de direção</h2>
               </div>
               <div className="card-body">
                 <MarkdownContent content={phase3StructuredOutput} />
@@ -324,7 +349,7 @@ function workspaceForScreen(
               <div className="card-header"><h2 className="card-title">Em andamento</h2></div>
               <div className="card-body">
                 <div className="callout info">
-                  O mentor está elaborando a síntese do seu diagnóstico e os caminhos possíveis. A direção estratégica recomendada aparecerá aqui para você confirmar ou ajustar via chat.
+                  O especialista está elaborando a síntese do seu diagnóstico e os caminhos possíveis. A proposta recomendada aparecerá aqui para você confirmar ou ajustar via chat.
                 </div>
               </div>
             </article>
@@ -411,6 +436,7 @@ function chatForScreen(
   screen: ScreenKey,
   conversations: ConversationPayload[],
   userProfile: PdiScreenProps['userProfile'],
+  persona: PersonaManifest,
   latestRevisionSummary?: string | null
 ) {
   if (screen.startsWith('phase-4-pdi')) {
@@ -439,42 +465,42 @@ function chatForScreen(
     screen === 'phase-1-diagnostico'
       ? {
           phase: 'PHASE_1_DIAGNOSTICO' as const,
-          phaseLabel: 'Fase 1/5',
+          phaseLabel: 'Fase 1',
           progress: 20,
-          progressText: 'Diagnóstico âncora em andamento',
-          placeholder: 'Responda ao mentor...',
+          progressText: 'Coleta inicial em andamento',
+          placeholder: 'Responda ao especialista...',
           ctaPrimary: 'Enviar',
           promoteStructuredAssistantOutputToWorkspace: true,
           advancePhase: 'PHASE_1_DIAGNOSTICO' as const,
-          advanceLabel: 'Avançar para o Diagnóstico Adaptativo →',
+          advanceLabel: persona.ctaLabels.phase1Advance,
         }
       : screen === 'phase-2-adaptativo'
         ? {
             phase: 'PHASE_2_ADAPTATIVO' as const,
-            phaseLabel: 'Fase 2/5',
+            phaseLabel: 'Fase 2',
             progress: 38,
             progressText: 'Diagnóstico adaptativo com triangulação de mercado',
             placeholder: 'Responda ao mentor...',
             ctaPrimary: 'Enviar',
             promoteStructuredAssistantOutputToWorkspace: true,
             advancePhase: 'PHASE_2_ADAPTATIVO' as const,
-            advanceLabel: 'Avançar para a Hipótese de Direção →',
+            advanceLabel: persona.phases?.PHASE_2_ADAPTATIVO?.advanceLabel ?? 'Avançar para a Hipótese de Direção →',
           }
         : screen === 'phase-3-direcao'
           ? {
               phase: 'PHASE_3_DIRECAO' as const,
-              phaseLabel: 'Fase 3/5',
+              phaseLabel: 'Fase 3',
               progress: 54,
-              progressText: 'Hipótese de direção pronta para validação',
+              progressText: 'Proposta pronta para validação',
               placeholder: 'Peça ajustes ou escreva sua confirmação...',
               ctaPrimary: 'Enviar',
               promoteStructuredAssistantOutputToWorkspace: true,
               advancePhase: 'PHASE_3_DIRECAO' as const,
-              advanceLabel: 'Confirmar direção e gerar PDI completo →',
+              advanceLabel: persona.ctaLabels.phase3Confirm,
             }
           : {
               phase: 'PHASE_5_FINAL' as const,
-              phaseLabel: 'Fase 5/5',
+              phaseLabel: 'Fase 5',
               progress: 100,
               progressText: 'Entregáveis finais prontos para formalização',
               placeholder: 'Peça ajustes no documento...',
@@ -486,17 +512,19 @@ function chatForScreen(
     <PhaseChatRail
       pdiId={pdiId}
       phase={config.phase}
-      title="Mentoria de Carreira"
+      title={persona.chatTitle}
       phaseLabel={config.phaseLabel}
       progress={config.progress}
       progressText={config.progressText}
       placeholder={config.placeholder}
       ctaPrimary={config.ctaPrimary}
       promoteStructuredAssistantOutputToWorkspace={config.promoteStructuredAssistantOutputToWorkspace}
-      initialMessages={initialMessagesForScreen(screen, conversations)}
+      initialMessages={initialMessagesForScreen(screen, conversations, persona)}
       userProfile={userProfile}
       advancePhase={'advancePhase' in config ? config.advancePhase : undefined}
       advanceLabel={'advanceLabel' in config ? config.advanceLabel : undefined}
+      assistantName={persona.assistantName}
+      personaId={persona.id}
     />
   )
 }
@@ -510,22 +538,29 @@ export function PdiScreen({
   latestRevisionSummary,
   conversations,
   userProfile,
+  persona = MENTORIA_CARREIRA_PERSONA,
 }: PdiScreenProps) {
+  const extraPatterns = persona.structuredOutputExtraPatterns
+
   const phase1StructuredOutput = latestStructuredAssistantMessageForPhase(
     conversations,
-    'PHASE_1_DIAGNOSTICO'
+    'PHASE_1_DIAGNOSTICO',
+    extraPatterns
   )
   const phase2StructuredOutput = latestStructuredAssistantMessageForPhase(
     conversations,
-    'PHASE_2_ADAPTATIVO'
+    'PHASE_2_ADAPTATIVO',
+    extraPatterns
   )
   const phase3StructuredOutput = latestStructuredAssistantMessageForPhase(
     conversations,
-    'PHASE_3_DIRECAO'
+    'PHASE_3_DIRECAO',
+    extraPatterns
   )
   const phase5StructuredOutput = latestStructuredAssistantMessageForPhase(
     conversations,
-    'PHASE_5_FINAL'
+    'PHASE_5_FINAL',
+    extraPatterns
   )
 
   return (
@@ -533,7 +568,7 @@ export function PdiScreen({
       pdiId={pdiId}
       pdiName={pdiName}
       pdiIdLabel={screen.toUpperCase().replaceAll('-', ' ').replaceAll('/', ' · ')}
-      sidebarNav={sidebarForScreen(screen, sectionsMap)}
+      sidebarNav={sidebarForScreen(screen, sectionsMap, persona)}
       workspace={workspaceForScreen(
         pdiId,
         screen,
@@ -543,9 +578,10 @@ export function PdiScreen({
         phase2StructuredOutput,
         phase3StructuredOutput,
         phase5StructuredOutput,
+        persona,
         latestRevisionSummary
       )}
-      chat={chatForScreen(pdiId, screen, conversations, userProfile, latestRevisionSummary)}
+      chat={chatForScreen(pdiId, screen, conversations, userProfile, persona, latestRevisionSummary)}
       userProfile={userProfile}
     />
   )

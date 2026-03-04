@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { isStructuredPhaseOutput } from '@/lib/pdi/structured-output'
+import { getPersonaById } from '@/lib/pdi/personas'
 import { MarkdownContent } from './MarkdownContent'
 
 interface ChatMessage {
@@ -37,6 +38,10 @@ interface PhaseChatRailProps {
   userProfile: UserProfile
   advancePhase?: 'PHASE_1_DIAGNOSTICO' | 'PHASE_2_ADAPTATIVO' | 'PHASE_3_DIRECAO'
   advanceLabel?: string
+  assistantName?: string
+  /** ID da persona ativa. Padrões de output estruturado são derivados internamente
+   *  a partir do registry para evitar serialização de RegExp por Server→Client. */
+  personaId?: string
 }
 
 const EMPTY_MESSAGES: ChatMessage[] = []
@@ -56,7 +61,14 @@ export function PhaseChatRail({
   userProfile,
   advancePhase,
   advanceLabel,
+  assistantName = 'Mentor Executivo',
+  personaId,
 }: PhaseChatRailProps) {
+  // Deriva os padrões de output estruturado a partir do registry (não serializa RegExp)
+  const extraStructuredOutputPatterns = useMemo(
+    () => (personaId ? getPersonaById(personaId).structuredOutputExtraPatterns : []),
+    [personaId]
+  )
   const router = useRouter()
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -84,9 +96,9 @@ export function PhaseChatRail({
       messages.filter((message) => {
         if (!promoteStructuredAssistantOutputToWorkspace) return true
         if (message.role !== 'ASSISTANT') return true
-        return !isStructuredPhaseOutput(message.content)
+        return !isStructuredPhaseOutput(message.content, extraStructuredOutputPatterns)
       }),
-    [messages, promoteStructuredAssistantOutputToWorkspace]
+    [messages, promoteStructuredAssistantOutputToWorkspace, extraStructuredOutputPatterns]
   )
 
   // Verifica se o último assistente enviou o bloco de fechamento —
@@ -97,11 +109,11 @@ export function PhaseChatRail({
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i]
       if (msg.role === 'ASSISTANT') {
-        return isStructuredPhaseOutput(msg.content)
+        return isStructuredPhaseOutput(msg.content, extraStructuredOutputPatterns)
       }
     }
     return false
-  }, [messages, advancePhase])
+  }, [messages, advancePhase, extraStructuredOutputPatterns])
 
   async function handleAdvance() {
     if (!advancePhase || isAdvancing) return
@@ -180,7 +192,7 @@ export function PhaseChatRail({
 
       const shouldPromoteToWorkspace =
         promoteStructuredAssistantOutputToWorkspace &&
-        isStructuredPhaseOutput(assistantMessage.content)
+        isStructuredPhaseOutput(assistantMessage.content, extraStructuredOutputPatterns)
 
       setMessages((prev) => (shouldPromoteToWorkspace ? prev : [...prev, assistantMessage]))
 
@@ -266,7 +278,7 @@ export function PhaseChatRail({
             </div>
             <div className={`chat-bubble ${message.role === 'USER' ? 'user' : ''}`} style={message.role === 'USER' ? { whiteSpace: 'pre-line' } : undefined}>
               <span className="chat-author">
-                {message.role === 'USER' ? userProfile.name || 'Você' : 'Mentor Executivo'}
+                {message.role === 'USER' ? userProfile.name || 'Você' : assistantName}
               </span>
               {message.role === 'USER' ? message.content : <MarkdownContent content={message.content} />}
             </div>
