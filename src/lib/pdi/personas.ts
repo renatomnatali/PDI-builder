@@ -62,7 +62,7 @@ export const MENTORIA_CARREIRA_PERSONA: PersonaManifest = {
   phases: {
     PHASE_1_DIAGNOSTICO: { sidebarLabel: 'Diagnóstico Âncora', advanceLabel: 'Avançar para o Diagnóstico Adaptativo →' },
     PHASE_2_ADAPTATIVO: { sidebarLabel: 'Diagnóstico Adaptativo', advanceLabel: 'Avançar para a Hipótese de Direção →' },
-    PHASE_3_DIRECAO: { sidebarLabel: 'Hipótese de Direção', advanceLabel: 'Confirmar direção e gerar PDI completo →' },
+    PHASE_3_DIRECAO: { sidebarLabel: 'Hipótese de Direção', advanceLabel: 'Aceitar sugestão e gerar PDI completo →' },
     PHASE_5_FINAL: { sidebarLabel: 'Entregáveis Finais' },
     PHASE_REVISAO: { sidebarLabel: 'Revisão' },
   },
@@ -83,7 +83,7 @@ export const MENTORIA_CARREIRA_PERSONA: PersonaManifest = {
 
   ctaLabels: {
     phase1Advance: 'Avançar para o Diagnóstico Adaptativo →',
-    phase3Confirm: 'Confirmar direção e gerar PDI completo →',
+    phase3Confirm: 'Aceitar sugestão e gerar PDI completo →',
   },
 }
 
@@ -166,7 +166,7 @@ export const PDI_EXPRESSO_PERSONA: PersonaManifest = {
 
   phases: {
     PHASE_1_DIAGNOSTICO: { sidebarLabel: 'Coleta Operacional', advanceLabel: 'Avançar para a Proposta de PDI →' },
-    PHASE_3_DIRECAO: { sidebarLabel: 'Proposta de PDI', advanceLabel: 'Confirmar e gerar PDI completo →' },
+    PHASE_3_DIRECAO: { sidebarLabel: 'Proposta de PDI', advanceLabel: 'Aceitar sugestão e gerar PDI completo →' },
     PHASE_5_FINAL: { sidebarLabel: 'Entregáveis Finais' },
     PHASE_REVISAO: { sidebarLabel: 'Revisão' },
   },
@@ -197,7 +197,7 @@ export const PDI_EXPRESSO_PERSONA: PersonaManifest = {
 
   ctaLabels: {
     phase1Advance: 'Avançar para a Proposta de PDI →',
-    phase3Confirm: 'Confirmar e gerar PDI completo →',
+    phase3Confirm: 'Aceitar sugestão e gerar PDI completo →',
   },
 }
 
