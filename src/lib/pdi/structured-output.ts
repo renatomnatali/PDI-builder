@@ -21,6 +21,7 @@ export function isStructuredPhaseOutput(content: string): boolean {
     /\bone-pager executivo\b/i.test(text) ||
     /\balinhamento gestor-funcion[áa]rio\b/i.test(text) ||
     /✅\s*confirmado/i.test(text) ||
+    /diagn[oó]stico adaptativo conclu[íi]do/i.test(text) ||
     /\bproposta\s+de\s+dire[çc][ãa]o\b/i.test(text) ||
     /\bhipótese\s+de\s+dire[çc][ãa]o\b/i.test(text) ||
     /\*\*\s*caminho\s+[abc]\b/i.test(text)

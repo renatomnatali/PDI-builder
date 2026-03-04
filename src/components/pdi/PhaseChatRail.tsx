@@ -35,6 +35,8 @@ interface PhaseChatRailProps {
   promoteStructuredAssistantOutputToWorkspace?: boolean
   initialMessages?: ChatMessage[]
   userProfile: UserProfile
+  advancePhase?: 'PHASE_1_DIAGNOSTICO' | 'PHASE_2_ADAPTATIVO' | 'PHASE_3_DIRECAO'
+  advanceLabel?: string
 }
 
 const EMPTY_MESSAGES: ChatMessage[] = []
@@ -52,10 +54,13 @@ export function PhaseChatRail({
   promoteStructuredAssistantOutputToWorkspace = false,
   initialMessages = EMPTY_MESSAGES,
   userProfile,
+  advancePhase,
+  advanceLabel,
 }: PhaseChatRailProps) {
   const router = useRouter()
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isAdvancing, setIsAdvancing] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const streamEndRef = useRef<HTMLDivElement | null>(null)
   const initialMessagesSignature = useMemo(
@@ -83,6 +88,41 @@ export function PhaseChatRail({
       }),
     [messages, promoteStructuredAssistantOutputToWorkspace]
   )
+
+  // Verifica se o último assistente enviou o bloco de fechamento —
+  // percorre todos os messages (incluindo os "promovidos" ao workspace)
+  // para exibir o botão de avanço inline no chat
+  const showAdvanceCta = useMemo(() => {
+    if (!advancePhase) return false
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (msg.role === 'ASSISTANT') {
+        return isStructuredPhaseOutput(msg.content)
+      }
+    }
+    return false
+  }, [messages, advancePhase])
+
+  async function handleAdvance() {
+    if (!advancePhase || isAdvancing) return
+    setIsAdvancing(true)
+    try {
+      const response = await fetch(`/api/pdi/${pdiId}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phase: advancePhase, message: 'sim' }),
+      })
+      const data = await response.json()
+      if (typeof data.nextScreen === 'string' && data.nextScreen.trim().length > 0) {
+        router.push(`/pdi/${pdiId}/${data.nextScreen}`)
+        router.refresh()
+      }
+    } catch {
+      // silently fail — user pode tentar novamente
+    } finally {
+      setIsAdvancing(false)
+    }
+  }
 
   async function sendMessage() {
     if (!canSend) return
@@ -232,6 +272,17 @@ export function PhaseChatRail({
             </div>
           </article>
         ))}
+        {showAdvanceCta && advancePhase ? (
+          <div className="chat-advance-cta">
+            <button
+              className="btn primary"
+              onClick={handleAdvance}
+              disabled={isAdvancing}
+            >
+              {isAdvancing ? 'Aguardando...' : (advanceLabel ?? 'Avançar →')}
+            </button>
+          </div>
+        ) : null}
         <div ref={streamEndRef} />
       </section>
       <footer className="chat-composer">

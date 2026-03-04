@@ -467,6 +467,8 @@ function chatForScreen(
           placeholder: 'Responda as perguntas da fase 1...',
           ctaPrimary: 'Enviar respostas',
           promoteStructuredAssistantOutputToWorkspace: true,
+          advancePhase: 'PHASE_1_DIAGNOSTICO' as const,
+          advanceLabel: 'Avançar para o Diagnóstico Adaptativo →',
         }
       : screen === 'phase-2-adaptativo'
         ? {
@@ -475,9 +477,10 @@ function chatForScreen(
             progress: 38,
             progressText: 'Diagnóstico adaptativo com triangulação de mercado',
             placeholder: 'Responda ao mentor...',
-            ctaPrimary: 'Enviar diagnóstico',
-            ctaSecondary: 'Pedir resumo',
+            ctaPrimary: 'Enviar',
             promoteStructuredAssistantOutputToWorkspace: true,
+            advancePhase: 'PHASE_2_ADAPTATIVO' as const,
+            advanceLabel: 'Avançar para a Hipótese de Direção →',
           }
         : screen === 'phase-3-direcao'
           ? {
@@ -486,9 +489,11 @@ function chatForScreen(
               progress: 54,
               progressText: 'Hipótese de direção pronta para validação',
               placeholder: 'Confirme o caminho estratégico ou peça ajustes...',
-              ctaPrimary: 'Confirmar caminho',
+              ctaPrimary: 'Enviar',
               ctaSecondary: 'Ajustar direção',
               promoteStructuredAssistantOutputToWorkspace: true,
+              advancePhase: 'PHASE_3_DIRECAO' as const,
+              advanceLabel: 'Confirmar direção e gerar PDI completo →',
             }
           : {
               phase: 'PHASE_5_FINAL' as const,
@@ -515,6 +520,8 @@ function chatForScreen(
       promoteStructuredAssistantOutputToWorkspace={config.promoteStructuredAssistantOutputToWorkspace}
       initialMessages={initialMessagesForScreen(screen, conversations)}
       userProfile={userProfile}
+      advancePhase={'advancePhase' in config ? config.advancePhase : undefined}
+      advanceLabel={'advanceLabel' in config ? config.advanceLabel : undefined}
     />
   )
 }

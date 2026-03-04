@@ -304,13 +304,38 @@
   gap: var(--space-2);
 }
 
+/* CTA de avanço de fase — aparece inline no stream do chat,
+   abaixo da última mensagem do assistente quando o diagnóstico
+   está concluído. Segue o padrão "quick reply" de UIs modernas. */
+.chat-advance-cta {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  border-top: 2px solid var(--color-brand-200, #c7dff5);
+  background: linear-gradient(to bottom, var(--color-info-light, #f0f7ff), transparent);
+  margin-top: var(--space-3);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.chat-advance-cta .btn.primary {
+  font-size: var(--font-size-sm);
+  padding: 9px 16px;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.18);
+  cursor: pointer;
+}
+
 .btn {
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   padding: 8px 13px;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  cursor: default;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .btn.primary {
