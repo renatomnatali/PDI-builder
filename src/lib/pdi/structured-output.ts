@@ -23,8 +23,12 @@ export function isStructuredPhaseOutput(content: string): boolean {
     /✅\s*confirmado/i.test(text) ||
     /diagn[oó]stico adaptativo conclu[íi]do/i.test(text) ||
     /\bproposta\s+de\s+dire[çc][ãa]o\b/i.test(text) ||
-    /\bhipótese\s+de\s+dire[çc][ãa]o\b/i.test(text) ||
-    /\*\*\s*caminho\s+[abc]\b/i.test(text)
+    /\bhip[oó]tese\s+de\s+dire[çc][ãa]o\b/i.test(text) ||
+    /##\s+s[íi]ntese\s+do\s+diagn[oó]stico/i.test(text) ||
+    /##\s+caminhos?\s+poss[íi]veis?/i.test(text) ||
+    /##\s+recomenda[çc][ãa]o/i.test(text) ||
+    /###\s+caminho\s+[1-3abc]\b/i.test(text) ||
+    /\*\*\s*caminho\s+[1-3abc]\b/i.test(text)
 
   return hasMarkdownTable || hasExecutiveMarkers
 }

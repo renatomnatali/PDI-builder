@@ -27,8 +27,28 @@ Quando tiver coletado informação suficiente para avançar, envie SOMENTE o blo
 ⚠️ Falta: [itens não coletados, se houver, caso contrário omita esta linha]
 Diagnóstico adaptativo concluído."`,
   PHASE_3_DIRECAO: `Fase 3 — Hipótese de Direção.
-Entregue síntese curta do diagnóstico, 1 a 3 caminhos possíveis e recomendação fundamentada.
-Finalize perguntando qual caminho seguir.`,
+Use EXATAMENTE estes cabeçalhos Markdown (sem alterar o texto dos títulos):
+
+## Síntese do Diagnóstico
+[2-4 frases resumindo o obstáculo central e contexto]
+
+## Caminhos Possíveis
+
+### Caminho 1 — [nome curto]
+[descrição]
+- **Prós:** [lista]
+- **Contras:** [lista]
+
+### Caminho 2 — [nome curto] (se aplicável)
+[mesma estrutura]
+
+### Caminho 3 — [nome curto] (se aplicável)
+[mesma estrutura]
+
+## Recomendação
+[caminho recomendado e justificativa em 2-3 frases]
+
+Finalize com uma pergunta direta: qual caminho o usuário quer seguir?`,
   PHASE_5_FINAL: `Fase 5 — Entregáveis finais.
 Ajuste checklist 7 dias, autoavaliação, alinhamento gestor-funcionário e one-pager executivo.
 Seja específico e orientado à execução.`,
