@@ -2,11 +2,20 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import type { PersonaManifest } from '@/lib/pdi/personas'
+
+/** Subconjunto serializável de PersonaManifest — apenas campos string usados pela UI.
+ *  Evita passar RegExp[] (structuredOutputExtraPatterns) de Server para Client Component. */
+export interface PersonaOption {
+  id: string
+  displayName: string
+  shortDescription: string
+  estimatedTime: string
+  assistantName: string
+}
 
 interface PersonaSelectorProps {
   pdiId: string
-  personas: PersonaManifest[]
+  personas: PersonaOption[]
   currentPersonaId: string
 }
 
