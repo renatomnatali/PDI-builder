@@ -567,7 +567,6 @@ function chatForScreen(
       <Phase4ChatRail
         progress={progress}
         text={text}
-        placeholder="Peça ajustes nas seções já concluídas enquanto as demais processam..."
       />
     )
   }

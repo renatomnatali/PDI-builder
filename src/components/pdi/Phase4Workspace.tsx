@@ -66,7 +66,8 @@ export function Phase4Workspace({
     createInitialStatus(initialSections)
   )
   const [, setMergedDocument] = useState(initialMergedDocument)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [sectionErrors, setSectionErrors] = useState<Partial<Record<PdiSectionKey, string>>>({})
+  const [globalError, setGlobalError] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
 
   const completedCount = useMemo(
@@ -87,12 +88,18 @@ export function Phase4Workspace({
     if (event.type === 'section_completed' && event.section && event.content) {
       setSections((prev) => ({ ...prev, [event.section as PdiSectionKey]: event.content as string }))
       setSectionStatus((prev) => ({ ...prev, [event.section as PdiSectionKey]: 'completed' }))
+      // Aguarda ~400ms para a API persistir no DB antes de revalidar a sidebar
+      setTimeout(() => router.refresh(), 400)
       return
     }
 
     if (event.type === 'section_error' && event.section) {
-      setSectionStatus((prev) => ({ ...prev, [event.section as PdiSectionKey]: 'error' }))
-      setErrorMessage(event.message || `Falha ao gerar seção ${event.section}.`)
+      const key = event.section as PdiSectionKey
+      setSectionStatus((prev) => ({ ...prev, [key]: 'error' }))
+      setSectionErrors((prev) => ({
+        ...prev,
+        [key]: event.message || `Falha ao gerar a seção ${event.section}.`,
+      }))
       return
     }
 
@@ -104,7 +111,8 @@ export function Phase4Workspace({
   async function startGeneration() {
     if (isGenerating) return
 
-    setErrorMessage(null)
+    setSectionErrors({})
+    setGlobalError(null)
     setIsGenerating(true)
 
     try {
@@ -153,9 +161,10 @@ export function Phase4Workspace({
         }
       }
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Erro inesperado na geração.')
+      setGlobalError(error instanceof Error ? error.message : 'Erro inesperado na geração.')
     } finally {
       setIsGenerating(false)
+      router.refresh() // Sincroniza sidebar com estado final do servidor
     }
   }
 
@@ -219,9 +228,9 @@ export function Phase4Workspace({
           </details>
         ) : null}
 
-        {/* Mensagem de erro */}
-        {errorMessage ? (
-          <div className="callout error">{errorMessage}</div>
+        {/* Erro global (falha de rede ou erro inesperado antes de iniciar) */}
+        {globalError ? (
+          <div className="callout error">{globalError}</div>
         ) : null}
 
         {/* Cards das seções — colapsáveis quando concluídas */}
@@ -265,6 +274,7 @@ export function Phase4Workspace({
           }
 
           if (status === 'error') {
+            const errMsg = sectionErrors[section] ?? 'Falha ao gerar esta seção.'
             return (
               <div key={section} className="card">
                 <div
@@ -273,6 +283,13 @@ export function Phase4Workspace({
                 >
                   <h3 className="card-title" style={{ margin: 0 }}>{section} · {SECTION_LABELS[section]}</h3>
                   <span className="badge error">ERRO</span>
+                </div>
+                <div className="card-body">
+                  <div className="callout error" style={{ marginBottom: 12 }}>{errMsg}</div>
+                  <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+                    Use o botão <strong>Continuar geração</strong> abaixo para tentar novamente.
+                    Seções já concluídas não serão regeradas.
+                  </p>
                 </div>
               </div>
             )
@@ -318,7 +335,7 @@ export function Phase4Workspace({
       ) : (
         <div className="workspace-cta-bar">
           {completedCount > 0 ? (
-            <span className="cta-hint">{completedCount}/7 seções geradas · retomar geração</span>
+            <span className="cta-hint">{completedCount}/7 seções geradas</span>
           ) : null}
           <button className="btn primary" onClick={startGeneration}>
             {completedCount > 0 ? 'Continuar geração' : 'Gerar PDI completo →'}
