@@ -98,8 +98,8 @@
 }
 
 .nav-item.active {
-  border-color: #b9ddd9;
-  background: linear-gradient(135deg, #e8f6f4, #f3f9ff);
+  border-color: var(--color-brand-100);
+  background: linear-gradient(135deg, var(--color-brand-050), #f3f7ff);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -235,6 +235,41 @@
   margin-top: var(--space-2);
   color: var(--color-text-secondary);
 }
+
+/* Barra de progresso segmentada (5 blocos) no cabeçalho do chat */
+.progress-segments {
+  display: flex;
+  gap: 3px;
+  height: 4px;
+  margin-top: var(--space-2);
+}
+
+.progress-segments .segment {
+  flex: 1;
+  border-radius: var(--radius-pill);
+  background: var(--color-slate-200);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-segments .segment.done {
+  background: var(--color-brand-600);
+}
+
+.progress-segments .segment.skipped {
+  background: #a3a3a3;
+}
+
+.progress-segments .segment.active {
+  background: var(--color-brand-500);
+  animation: segment-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes segment-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
 
 .chat-stream {
   flex: 1;

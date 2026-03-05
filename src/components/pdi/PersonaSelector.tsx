@@ -24,10 +24,12 @@ interface PersonaSelectorProps {
 export function PersonaSelector({ pdiId, personas, currentPersonaId }: PersonaSelectorProps) {
   const router = useRouter()
   const [loading, setLoading] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   async function selectPersona(personaId: string) {
     if (loading) return
     setLoading(personaId)
+    setErrorMsg(null)
 
     try {
       const response = await fetch(`/api/pdi/${pdiId}/persona`, {
@@ -39,7 +41,7 @@ export function PersonaSelector({ pdiId, personas, currentPersonaId }: PersonaSe
       if (!response.ok) {
         const error = await response.json()
         if (error.error === 'PERSONA_LOCKED') {
-          alert('A modalidade não pode ser alterada após o início da jornada.')
+          setErrorMsg('A modalidade não pode ser alterada após o início da jornada.')
           return
         }
         throw new Error(error.message || 'Erro ao selecionar modalidade')
@@ -48,7 +50,7 @@ export function PersonaSelector({ pdiId, personas, currentPersonaId }: PersonaSe
       router.push(`/pdi/${pdiId}/phase-1-diagnostico`)
       router.refresh()
     } catch {
-      alert('Erro ao salvar a modalidade. Tente novamente.')
+      setErrorMsg('Erro ao salvar a modalidade. Tente novamente.')
     } finally {
       setLoading(null)
     }
@@ -70,6 +72,16 @@ export function PersonaSelector({ pdiId, personas, currentPersonaId }: PersonaSe
           mais rápido e operacional, ou um diagnóstico profundo com triangulação de mercado.
         </p>
       </div>
+
+      {errorMsg ? (
+        <div
+          className="callout error"
+          style={{ marginTop: 16 }}
+          role="alert"
+        >
+          {errorMsg}
+        </div>
+      ) : null}
 
       <div
         style={{
