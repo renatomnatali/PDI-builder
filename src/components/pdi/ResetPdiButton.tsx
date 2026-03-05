@@ -73,7 +73,7 @@ export function ResetPdiButton({ pdiId }: ResetPdiButtonProps) {
         </div>
       )}
       {error ? (
-        <div style={{ fontSize: 11, color: 'var(--color-danger)' }}>{error}</div>
+        <div style={{ fontSize: 11, color: 'var(--color-error)' }}>{error}</div>
       ) : null}
     </div>
   )
