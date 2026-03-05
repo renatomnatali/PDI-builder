@@ -1,0 +1,122 @@
+/**
+ * Design Tokens - PDI Builder
+ * Base visual para mockups navegáveis do fluxo de criação de PDI.
+ */
+
+:root {
+  /* Brand (azul) */
+  --color-brand-900: #1e3a5f;
+  --color-brand-700: #1d4ed8;
+  --color-brand-600: #2563eb;
+  --color-brand-500: #3b82f6;
+  --color-brand-100: #dbeafe;
+  --color-brand-050: #eff6ff;
+
+  /* Accent (mantido neutro) */
+  --color-accent-700: #a45417;
+  --color-accent-500: #d97706;
+  --color-accent-100: #fde7c6;
+
+  /* Semantic */
+  --color-success: #0f8a4a;
+  --color-success-light: #d6f5e5;
+  --color-error: #d92d20;
+  --color-error-light: #fee4e2;
+  --color-warning: #b54708;
+  --color-warning-light: #ffefd6;
+  --color-info: #155eef;
+  --color-info-light: #dbe8ff;
+
+  /* Neutral */
+  --color-slate-950: #0f172a;
+  --color-slate-900: #1e293b;
+  --color-slate-800: #334155;
+  --color-slate-700: #475569;
+  --color-slate-600: #64748b;
+  --color-slate-500: #94a3b8;
+  --color-slate-400: #cbd5e1;
+  --color-slate-300: #dce4ee;
+  --color-slate-200: #e9eef5;
+  --color-slate-100: #f4f7fb;
+  --color-slate-050: #f8fafc;
+  --color-white: #ffffff;
+
+  /* Semantic aliases */
+  --color-bg-page: linear-gradient(150deg, #f8fafc 0%, #eff6ff 55%, #f8fafc 100%);
+  --color-bg-panel: rgba(255, 255, 255, 0.88);
+  --color-bg-muted: #f7fafc;
+  --color-border: #dce4ee;
+  --color-border-strong: #c4d1e2;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #334155;
+  --color-text-tertiary: #64748b;
+
+  /* Typography */
+  --font-family: 'Manrope', 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px;
+  --font-size-2xl: 30px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 8px 18px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 20px 40px rgba(15, 23, 42, 0.12);
+
+  /* Layout */
+  --sidebar-width: 240px;
+  --chat-width: 360px;
+  --app-padding: 18px;
+
+  /* Motion */
+  --ease-fast: 150ms ease;
+  --ease-normal: 300ms ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  color: var(--color-text-primary);
+  background: var(--color-bg-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+}

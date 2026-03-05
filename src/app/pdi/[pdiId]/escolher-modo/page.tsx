@@ -19,12 +19,13 @@ export default async function EscolherModoPage({
   // Mapeia para PersonaOption (somente campos string) antes de passar ao Client Component.
   // PersonaManifest contém RegExp[] que não é serializável pela boundary Server→Client.
   const personaOptions: PersonaOption[] = ALL_PERSONAS.map(
-    ({ id, displayName, shortDescription, estimatedTime, assistantName }) => ({
+    ({ id, displayName, shortDescription, estimatedTime, assistantName, isPremium }) => ({
       id,
       displayName,
       shortDescription,
       estimatedTime,
       assistantName,
+      isPremium,
     })
   )
 

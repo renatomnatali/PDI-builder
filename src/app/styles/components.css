@@ -216,6 +216,141 @@
   color: var(--color-error);
 }
 
+/* Novos badges do design system UX */
+.badge.processando {
+  background: var(--color-brand-050);
+  color: var(--color-brand-600);
+  border: 1px solid var(--color-brand-500);
+  animation: pulse-border 1.5s ease-in-out infinite;
+}
+
+.badge.revisao {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+  border: 1px solid var(--color-accent-500);
+}
+
+.badge.pulada {
+  background: #f5f5f5;
+  color: #737373;
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: var(--color-brand-500); }
+  50%       { border-color: var(--color-brand-100); }
+}
+
+/* Card Tipo 2 — Com ação primária */
+.card.card-action {
+  border-color: var(--color-brand-100);
+  box-shadow: var(--shadow-md);
+}
+
+/* Card Tipo 4 — Status de processo */
+.card.card-process {
+  background: var(--color-brand-050);
+  border-color: var(--color-brand-100);
+  border-left: 3px solid var(--color-brand-500);
+}
+
+/* Card Tipo 3 — Colapsável via <details> */
+details.card {
+  overflow: hidden;
+}
+
+details.card > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-md);
+  user-select: none;
+}
+
+details.card > summary::-webkit-details-marker { display: none; }
+
+details.card > summary .chevron {
+  font-style: normal;
+  transition: transform var(--ease-fast);
+  color: var(--color-text-tertiary);
+}
+
+details.card[open] > summary .chevron {
+  transform: rotate(90deg);
+}
+
+details.card .card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Spinner inline */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-brand-100);
+  border-top-color: var(--color-brand-600);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Progress bar inline */
+.progress-bar-wrap {
+  background: var(--color-border);
+  border-radius: var(--radius-pill);
+  height: 4px;
+  overflow: hidden;
+  margin-top: var(--space-2);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--color-brand-500);
+  border-radius: var(--radius-pill);
+  transition: width 0.4s ease;
+}
+
+/* Sub-itens da sidebar (seções 4.1-4.7 e entregáveis 5.x) */
+.nav-sub-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-5) var(--space-1) 36px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  line-height: 1.4;
+}
+
+.nav-sub-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 9px;
+}
+
+.nav-sub-icon.pending  { border: 1.5px solid #d4d4d4; }
+.nav-sub-icon.active   { border: 1.5px solid var(--color-brand-600); color: var(--color-brand-600); }
+.nav-sub-icon.done     { background: #22c55e; color: white; font-size: 8px; }
+.nav-sub-icon.error    { background: var(--color-error); color: white; }
+.nav-sub-icon.revision { background: #eab308; color: white; }
+
 .chat-message {
   display: grid;
   grid-template-columns: 34px 1fr;
@@ -302,6 +437,25 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
+}
+
+/* Separador visual para mensagens de sistema no chat stream */
+.chat-separator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: var(--space-1) 0;
+}
+
+.chat-separator::before,
+.chat-separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
 }
 
 /* CTA de avanço de fase — aparece inline no stream do chat,

@@ -53,13 +53,6 @@ function createInitialStatus(
   }
 }
 
-function statusBadge(status: PdiSectionStatus) {
-  if (status === 'completed') return <span className="badge success">CONCLUÍDA</span>
-  if (status === 'processing') return <span className="badge warning">PROCESSANDO</span>
-  if (status === 'error') return <span className="badge error">ERRO</span>
-  return <span className="badge info">NA FILA</span>
-}
-
 export function Phase4Workspace({
   pdiId,
   mode,
@@ -75,19 +68,6 @@ export function Phase4Workspace({
   const [, setMergedDocument] = useState(initialMergedDocument)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [expandedSections, setExpandedSections] = useState<Set<PdiSectionKey>>(new Set())
-
-  function toggleSection(section: PdiSectionKey) {
-    setExpandedSections((prev) => {
-      const next = new Set(prev)
-      if (next.has(section)) {
-        next.delete(section)
-      } else {
-        next.add(section)
-      }
-      return next
-    })
-  }
 
   const completedCount = useMemo(
     () =>
@@ -128,10 +108,12 @@ export function Phase4Workspace({
     setIsGenerating(true)
 
     try {
+      // Não envia `briefing` se estiver vazio — o schema Zod exige min(1) quando presente
+      const briefingTrimmed = briefing.trim()
       const response = await fetch(`/api/pdi/${pdiId}/pdi/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ briefing }),
+        body: JSON.stringify(briefingTrimmed ? { briefing: briefingTrimmed } : {}),
       })
 
       if (!response.ok) {
@@ -180,120 +162,169 @@ export function Phase4Workspace({
   return (
     <>
       <header className="workspace-header">
-        <div className="workspace-breadcrumb">Fase 4 · Execução incremental por seções</div>
+        <div className="workspace-breadcrumb">Fase 4 · PDI Completo</div>
         <h1 className="workspace-title">
-          {mode === 'inicio'
-            ? 'PDI aparecendo por seção, em tempo real'
-            : mode === 'avancado'
-              ? 'Quase pronto: falta apenas a seção 4.7'
-              : 'Documento 4.1-4.7 consolidado para o usuário'}
+          {mode === 'consolidado'
+            ? 'PDI completo gerado — revise e prossiga'
+            : isGenerating
+              ? 'Gerando seu PDI em tempo real…'
+              : completedCount > 0
+                ? `${completedCount} de 7 seções prontas — continue a geração`
+                : 'Pronto para gerar seu PDI personalizado'}
         </h1>
         <p className="workspace-subtitle">
-          Processamento interno com uma chamada por seção (4.1 a 4.7) e exibição incremental no painel.
+          {mode === 'consolidado'
+            ? 'Todas as 7 seções foram geradas. Expanda qualquer seção para revisar antes de prosseguir para os entregáveis.'
+            : 'O PDI é construído seção por seção, em tempo real, com base no diagnóstico e na direção confirmada.'}
         </p>
       </header>
 
       <section className="workspace-body">
-        <article className="card">
-          <div className="card-header">
-            <h2 className="card-title">Orquestração de geração</h2>
+        {/* Barra de progresso compacta */}
+        <div className="card card-process" style={{ padding: '12px 16px' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 6,
+              fontSize: 'var(--font-size-sm)',
+              color: 'var(--color-text-secondary)',
+            }}
+          >
+            <span>Seções geradas</span>
+            <strong style={{ color: completedCount === 7 ? 'var(--color-brand-600)' : 'inherit' }}>
+              {completedCount} de 7
+            </strong>
           </div>
-          <div className="card-body">
-            <div className="table-wrap">
-              <table className="data-table" style={{ minWidth: 760 }}>
-                <thead>
-                  <tr>
-                    <th>Seção</th>
-                    <th>Status</th>
-                    <th>Conteúdo no painel</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {PDI_SECTION_ORDER.map((section) => (
-                    <tr key={section}>
-                      <td>{section}</td>
-                      <td>{statusBadge(sectionStatus[section])}</td>
-                      <td>{sections[section] ? 'Publicado para o usuário' : 'Aguardando geração'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="callout info" style={{ marginTop: 12 }}>
-              Progresso atual: {completedCount}/7 ({progress}%).
-            </div>
+          <div className="progress-bar-wrap">
+            <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
           </div>
-        </article>
+        </div>
 
+        {/* Contexto adicional — colapsável via <details> nativo */}
         {mode !== 'consolidado' ? (
-          <article className="card">
-            <div className="card-header">
-              <h2 className="card-title">Contexto adicional (opcional)</h2>
-            </div>
+          <details className="card">
+            <summary>
+              <span>Contexto adicional <em style={{ fontWeight: 400, color: 'var(--color-text-secondary)' }}>(opcional)</em></span>
+            </summary>
             <div className="card-body">
               <textarea
                 className="chat-input"
                 value={briefing}
                 onChange={(event) => setBriefing(event.target.value)}
-                placeholder="Adicione detalhes que o mentor ainda não sabe: restrições da empresa, budget para cursos, projetos prioritários, prazos específicos..."
+                placeholder="Adicione detalhes que o mentor ainda não sabe: restrições da empresa, budget para cursos, projetos prioritários, prazos específicos…"
               ></textarea>
-              <div className="chat-cta">
-                <button className="btn primary" onClick={startGeneration} disabled={isGenerating}>
-                  {isGenerating ? 'Gerando...' : 'Gerar PDI completo (4.1 a 4.7)'}
-                </button>
-              </div>
-              {errorMessage ? (
-                <div className="callout error" style={{ marginTop: 12 }}>
-                  {errorMessage}
-                </div>
-              ) : null}
             </div>
-          </article>
+          </details>
         ) : null}
 
+        {/* Mensagem de erro */}
+        {errorMessage ? (
+          <div className="callout error">{errorMessage}</div>
+        ) : null}
+
+        {/* Cards das seções — colapsáveis quando concluídas */}
         {PDI_SECTION_ORDER.map((section) => {
           const content = sections[section]
-          if (!content) return null
-          const isExpanded = expandedSections.has(section)
-          return (
-            <article className="card" key={section}>
-              <div
-                className="card-header"
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-                onClick={() => toggleSection(section)}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <h2 className="card-title" style={{ margin: 0 }}>
-                    {section} · {SECTION_LABELS[section]}
-                  </h2>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="badge success">CONCLUÍDA</span>
-                    <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
-                      {isExpanded ? '▲ recolher' : '▼ expandir'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              {isExpanded ? (
+          const status = sectionStatus[section]
+
+          if (status === 'completed' && content) {
+            return (
+              <details key={section} className="card">
+                <summary>
+                  <span>{section} · {SECTION_LABELS[section]}</span>
+                  <span className="badge success" style={{ marginLeft: 'auto' }}>CONCLUÍDA</span>
+                </summary>
                 <div className="card-body">
                   <MarkdownContent content={content} />
                 </div>
-              ) : null}
-            </article>
-          )
-        })}
+              </details>
+            )
+          }
 
-        {mode === 'consolidado' ? (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 0 16px' }}>
-            <button
-              className="btn primary"
-              onClick={() => router.push(`/pdi/${pdiId}/phase-5-final/entregaveis`)}
-            >
-              Ver Entregáveis Finais →
-            </button>
-          </div>
-        ) : null}
+          if (status === 'processing') {
+            return (
+              <div key={section} className="card card-process">
+                <div
+                  className="card-header"
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  <h3 className="card-title" style={{ margin: 0 }}>{section} · {SECTION_LABELS[section]}</h3>
+                  <span className="badge processando">GERANDO</span>
+                </div>
+                <div
+                  className="card-body"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)' }}
+                >
+                  <span className="spinner" style={{ width: 16, height: 16 }} aria-hidden="true" />
+                  <span>Gerando seção…</span>
+                </div>
+              </div>
+            )
+          }
+
+          if (status === 'error') {
+            return (
+              <div key={section} className="card">
+                <div
+                  className="card-header"
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  <h3 className="card-title" style={{ margin: 0 }}>{section} · {SECTION_LABELS[section]}</h3>
+                  <span className="badge error">ERRO</span>
+                </div>
+              </div>
+            )
+          }
+
+          /* pending — exibe enquanto geração estiver em andamento */
+          if (isGenerating) {
+            return (
+              <div key={section} className="card card-process" style={{ opacity: 0.5 }}>
+                <div
+                  className="card-header"
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  <h3 className="card-title" style={{ margin: 0 }}>{section} · {SECTION_LABELS[section]}</h3>
+                  <span className="badge info">NA FILA</span>
+                </div>
+              </div>
+            )
+          }
+
+          return null
+        })}
       </section>
+
+      {/* Barra CTA sticky */}
+      {mode === 'consolidado' ? (
+        <div className="workspace-cta-bar">
+          <button
+            className="btn primary"
+            onClick={() => router.push(`/pdi/${pdiId}/phase-5-final/entregaveis`)}
+          >
+            Ver Entregáveis Finais →
+          </button>
+        </div>
+      ) : isGenerating ? (
+        <div className="workspace-cta-bar">
+          <span className="cta-hint">{completedCount} de 7 seções concluídas</span>
+          <button className="btn primary" disabled aria-busy="true">
+            <span className="spinner" style={{ width: 14, height: 14, display: 'inline-block', verticalAlign: 'middle', marginRight: 6 }} aria-hidden="true" />
+            Gerando…
+          </button>
+        </div>
+      ) : (
+        <div className="workspace-cta-bar">
+          {completedCount > 0 ? (
+            <span className="cta-hint">{completedCount}/7 seções geradas · retomar geração</span>
+          ) : null}
+          <button className="btn primary" onClick={startGeneration}>
+            {completedCount > 0 ? 'Continuar geração' : 'Gerar PDI completo →'}
+          </button>
+        </div>
+      )}
     </>
   )
 }

@@ -1,0 +1,306 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(620px, 1fr) var(--chat-width);
+  min-height: 100vh;
+  height: 100dvh;
+  gap: var(--app-padding);
+  padding: var(--app-padding);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.panel {
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(8px);
+  min-height: 0;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.sidebar-header {
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.logo-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-white);
+  background: linear-gradient(135deg, var(--color-brand-700), var(--color-brand-500));
+}
+
+.logo-text {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.01em;
+}
+
+.pdi-id {
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
+}
+
+.pdi-name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sidebar-nav {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow: auto;
+  min-height: 0;
+}
+
+.nav-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
+  margin: var(--space-2) var(--space-2) var(--space-1);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: var(--font-size-sm);
+}
+
+.nav-item.active {
+  border-color: var(--color-brand-100);
+  background: linear-gradient(135deg, var(--color-brand-050), #f3f7ff);
+  font-weight: var(--font-weight-semibold);
+}
+
+.nav-item.done {
+  color: var(--color-success);
+}
+
+.nav-item.blocked {
+  color: var(--color-text-tertiary);
+}
+
+.nav-state {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-slate-100);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.user-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  display: grid;
+  place-items: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-brand-900);
+  background: var(--color-brand-100);
+}
+
+.workspace {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.workspace-header {
+  padding: var(--space-8);
+  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(180deg, #f4fbfa 0%, #ffffff 100%);
+}
+
+.workspace-breadcrumb {
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.08em;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-brand-700);
+  margin-bottom: var(--space-3);
+  text-transform: uppercase;
+}
+
+.workspace-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-2xl);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.workspace-subtitle {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  max-width: 78ch;
+}
+
+.workspace-body {
+  padding: var(--space-6);
+  display: grid;
+  gap: var(--space-5);
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.chat-header {
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(180deg, #fdf8f0, #fff);
+}
+
+.chat-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.chat-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.phase-pill {
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-accent-100);
+  color: var(--color-accent-700);
+}
+
+.progress-track {
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--color-slate-200);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-brand-700), var(--color-brand-500));
+}
+
+.progress-text {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  margin-top: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+/* Barra de progresso segmentada (5 blocos) no cabeçalho do chat */
+.progress-segments {
+  display: flex;
+  gap: 3px;
+  height: 4px;
+  margin-top: var(--space-2);
+}
+
+.progress-segments .segment {
+  flex: 1;
+  border-radius: var(--radius-pill);
+  background: var(--color-slate-200);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-segments .segment.done {
+  background: var(--color-brand-600);
+}
+
+.progress-segments .segment.skipped {
+  background: #a3a3a3;
+}
+
+.progress-segments .segment.active {
+  background: var(--color-brand-500);
+  animation: segment-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes segment-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+
+.chat-stream {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+  align-content: start; /* impede que itens isolados (ex: chat-advance-cta) estiquem para preencher toda a altura */
+}
+
+.chat-composer {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-4);
+  background: var(--color-bg-panel);
+}
+
+@media (max-width: 1360px) {
+  .app-shell {
+    grid-template-columns: 250px minmax(520px, 1fr) 360px;
+  }
+}
+
+@media (max-width: 1120px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+
+  .sidebar,
+  .chat {
+    min-height: auto;
+  }
+}

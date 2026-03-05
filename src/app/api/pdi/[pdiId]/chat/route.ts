@@ -20,6 +20,9 @@ const chatRequestSchema = z.object({
     'PHASE_REVISAO',
   ]),
   message: z.string().min(1).max(12000),
+  /** Presente apenas quando o botão CTA dispara avanço explícito de fase.
+   *  Nunca enviado por mensagens normais de chat — evita falsos positivos. */
+  action: z.literal('advance').optional(),
 })
 
 const PHASE_2_SCREEN = 'phase-2-adaptativo'
@@ -30,8 +33,6 @@ const PHASE_4_SCREEN = 'phase-4-pdi/inicio'
 const ASK_TO_ADVANCE_PHASE_2_PATTERN = /posso\s+avan[çc]ar\s+para\s+a\s+fase\s*2/i
 
 const PHASE_2_CLOSING_PATTERN = /✅\s*confirmado|diagn[oó]stico adaptativo conclu[íi]do/i
-const ASK_ABOUT_PATH_PATTERN =
-  /qual\s+(desses?\s+)?caminhos?|prefere\s+seguir|quer\s+seguir|por\s+qual\s+caminho|confirmar\s+o\s+caminho/i
 const NEGATIVE_INTENT_PATTERN = /\b(n[aã]o|ainda n[aã]o|espera|aguarde)\b/i
 const AFFIRMATIVE_INTENT_PATTERN =
   /\b(sim|ok|fechado|perfeito|pode|podemos|vamos|bora|seguir|siga|prosseguir|avan[çc]a|avan[çc]ar|pr[oó]xima fase|continuar|continue|confirmo|confirmado)\b/i
@@ -93,15 +94,21 @@ function shouldAdvanceToPhase3(
 }
 
 // Ambas as personas: Fase 3 → Fase 4
+// Só dispara quando action === 'advance' (enviado exclusivamente pelo botão CTA).
+// Mensagens de chat normais nunca transitam — elimina falsos positivos como
+// "sim, entendi mas preciso alterar". Safety check: proposta estruturada deve
+// existir no histórico antes de avançar.
 function shouldAdvanceToPhase4(
   phase: z.infer<typeof chatRequestSchema>['phase'],
-  userMessage: string,
-  history: ChatHistory
+  action: string | undefined,
+  history: ChatHistory,
+  extraPatterns: RegExp[] = []
 ): boolean {
   if (phase !== 'PHASE_3_DIRECAO') return false
-  if (!isAffirmativeForPhaseAdvance(userMessage)) return false
-  const latestAssistant = findLatestAssistantBeforeCurrentUser(history)
-  return ASK_ABOUT_PATH_PATTERN.test(latestAssistant)
+  if (action !== 'advance') return false
+  return history.some(
+    (m) => m.role === 'ASSISTANT' && isStructuredPhaseOutput(m.content, extraPatterns)
+  )
 }
 
 export async function POST(
@@ -267,7 +274,7 @@ export async function POST(
     }
 
     // ── Transição: Fase 3 → Fase 4 (ambas as personas) ──────────────────────
-    if (shouldAdvanceToPhase4(parsed.phase, parsed.message, history)) {
+    if (shouldAdvanceToPhase4(parsed.phase, parsed.action, history, persona.structuredOutputExtraPatterns)) {
       const confirmContent =
         'Caminho confirmado. Vou montar o PDI completo agora. Clique em "Gerar PDI completo" no painel central para iniciar.'
 
