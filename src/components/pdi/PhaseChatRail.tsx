@@ -18,6 +18,9 @@ interface UserProfile {
   avatarUrl?: string | null
 }
 
+/** Estado de cada segmento da barra de progresso de 5 blocos */
+export type SegmentState = 'done' | 'active' | 'skipped' | 'pending'
+
 interface PhaseChatRailProps {
   pdiId: string
   phase:
@@ -42,6 +45,11 @@ interface PhaseChatRailProps {
   /** ID da persona ativa. Padrões de output estruturado são derivados internamente
    *  a partir do registry para evitar serialização de RegExp por Server→Client. */
   personaId?: string
+  /**
+   * Segmentos para a barra de progresso de 5 blocos (F1–F5).
+   * Quando fornecido, substitui a barra contínua padrão.
+   */
+  segments?: SegmentState[]
 }
 
 const EMPTY_MESSAGES: ChatMessage[] = []
@@ -63,6 +71,7 @@ export function PhaseChatRail({
   advanceLabel,
   assistantName = 'Mentor Executivo',
   personaId,
+  segments,
 }: PhaseChatRailProps) {
   // Deriva os padrões de output estruturado a partir do registry (não serializa RegExp)
   const extraStructuredOutputPatterns = useMemo(
@@ -247,43 +256,71 @@ export function PhaseChatRail({
           <div className="chat-title">{title}</div>
           <span className="phase-pill">{phaseLabel}</span>
         </div>
-        <div className="progress-track">
-          <div className="progress-fill" style={{ width: `${progress}%` }}></div>
-        </div>
+        {segments ? (
+          <div className="progress-segments" role="progressbar" aria-label={progressText}>
+            {segments.map((state, i) => (
+              <div key={i} className={`segment ${state}`} />
+            ))}
+          </div>
+        ) : (
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+          </div>
+        )}
         <span className="progress-text">{progressText}</span>
       </header>
       <section className="chat-stream">
-        {visibleMessages.map((message) => (
-          <article className="chat-message" key={message.id}>
-            <div className={`chat-avatar ${message.role === 'USER' ? 'user' : 'ai'}`}>
-              {message.role === 'USER' ? (
-                userProfile.avatarUrl ? (
-                  <div
-                    aria-label={userProfile.name || 'Usuário'}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      borderRadius: '999px',
-                      backgroundImage: `url(${userProfile.avatarUrl})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                    }}
-                  ></div>
+        {visibleMessages.map((message) => {
+          /* Mensagens de sistema são renderizadas como separadores visuais */
+          if (message.role === 'SYSTEM') {
+            return (
+              <div key={message.id} className="chat-separator" role="separator">
+                <span>{message.content}</span>
+              </div>
+            )
+          }
+          return (
+            <article className="chat-message" key={message.id}>
+              <div className={`chat-avatar ${message.role === 'USER' ? 'user' : 'ai'}`}>
+                {message.role === 'USER' ? (
+                  userProfile.avatarUrl ? (
+                    <div
+                      aria-label={userProfile.name || 'Usuário'}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: '999px',
+                        backgroundImage: `url(${userProfile.avatarUrl})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    ></div>
+                  ) : (
+                    initials
+                  )
                 ) : (
-                  initials
-                )
-              ) : (
-                'AI'
-              )}
-            </div>
-            <div className={`chat-bubble ${message.role === 'USER' ? 'user' : ''}`} style={message.role === 'USER' ? { whiteSpace: 'pre-line' } : undefined}>
-              <span className="chat-author">
-                {message.role === 'USER' ? userProfile.name || 'Você' : assistantName}
-              </span>
-              {message.role === 'USER' ? message.content : <MarkdownContent content={message.content} />}
+                  'AI'
+                )}
+              </div>
+              <div className={`chat-bubble ${message.role === 'USER' ? 'user' : ''}`} style={message.role === 'USER' ? { whiteSpace: 'pre-line' } : undefined}>
+                <span className="chat-author">
+                  {message.role === 'USER' ? userProfile.name || 'Você' : assistantName}
+                </span>
+                {message.role === 'USER' ? message.content : <MarkdownContent content={message.content} />}
+              </div>
+            </article>
+          )
+        })}
+        {/* Bolha de carregamento enquanto aguarda resposta da IA */}
+        {isLoading && (
+          <article className="chat-message" aria-live="polite" aria-label="Assistente está digitando">
+            <div className="chat-avatar ai">AI</div>
+            <div className="chat-bubble">
+              <span className="chat-author">{assistantName}</span>
+              <span className="spinner" style={{ width: 18, height: 18, display: 'inline-block' }} />
             </div>
           </article>
-        ))}
+        )}
         {showAdvanceCta && advancePhase ? (
           <div className="chat-advance-cta">
             <button
